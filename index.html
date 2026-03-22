@@ -1,0 +1,2397 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Blackjack by Yoskan Game</title>
+<style>
+    :root {
+        --bg-color: #1A2530;
+        --side-panel-bg: #121A22;
+        --top-nav-bg: #0D131A;
+        --text-primary: #FFFFFF;
+        --text-secondary: #BDC3C7;
+        --accent-color: #F1C40F;
+        --btn-base: #2C3E50;
+        --card-bg: #FFFFFF;
+        --card-text: #000000;
+        --card-suit-red: #E74C3C;
+        --win-color: #27AE60;
+        --lose-color: #C0392B;
+        --tie-color: #7F8C8D;
+        --menu-grad-1: #1A2530;
+        --menu-grad-2: #0B131A;
+        --menu-grad-3: #1E2B38;
+        --menu-grad-4: #121A22;
+    }
+
+    * { box-sizing: border-box; touch-action: manipulation; }
+
+    body {
+        font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        margin: 0; padding: 0; background-color: var(--bg-color);
+        color: var(--text-primary); width: 100vw; height: 100dvh;
+        display: flex; flex-direction: column; user-select: none; overflow: hidden;
+        transition: background-color 0.5s ease;
+    }
+
+    #top-nav {
+        width: 100%; background-color: var(--top-nav-bg);
+        display: none; flex-direction: column; align-items: center; justify-content: center;
+        padding: 10px; border-bottom: 2px solid rgba(255,255,255,0.05); z-index: 1000;
+        transition: background-color 0.5s ease; gap: 10px;
+    }
+
+    .nav-brand { font-size: 18px; font-weight: bold; letter-spacing: 2px; color: var(--text-primary); display: flex; align-items: center; gap: 10px; width: 100%; justify-content: center; }
+    .nav-brand span { color: var(--accent-color); font-size: 12px; letter-spacing: 1px; }
+
+    .nav-tabs { display: flex; width: 100%; overflow-x: auto; justify-content: flex-start; padding-bottom: 5px; }
+    .nav-tabs::-webkit-scrollbar { height: 4px; }
+    .nav-tabs::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 2px; }
+    .nav-tab {
+        position: relative;
+        padding: 10px 15px; display: flex; align-items: center; justify-content: center;
+        font-size: 11px; font-weight: bold; color: var(--text-secondary); letter-spacing: 1px;
+        cursor: pointer; text-transform: uppercase; transition: 0.2s; border-bottom: 4px solid transparent; flex-shrink: 0;
+    }
+    .nav-tab:hover { color: var(--text-primary); background-color: rgba(255,255,255,0.05); }
+    .nav-tab.active { color: var(--text-primary); border-bottom-color: var(--accent-color); background-color: rgba(255,255,255,0.02); }
+    
+    .pass-badge { background: var(--lose-color); color: white; border-radius: 50%; width: 16px; height: 16px; font-size: 9px; display: flex; align-items: center; justify-content: center; position: absolute; top: 2px; right: 2px; }
+    .defis-badge { background: var(--win-color); color: white; border-radius: 50%; width: 16px; height: 16px; font-size: 9px; display: flex; align-items: center; justify-content: center; position: absolute; top: 2px; right: 2px; }
+
+    .nav-solde { display: flex; align-items: center; justify-content: space-around; width: 100%; font-weight: bold; font-size: 16px; background-color: rgba(0,0,0,0.5); padding: 8px 10px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.1); }
+    .currency-block { display: flex; align-items: center; gap: 6px; }
+    .currency-block span:first-child { font-size: 14px; }
+
+    #main-content { flex: 1; display: flex; position: relative; overflow: hidden; width: 100%; }
+
+    .screen { display: none; width: 100%; height: 100%; position: absolute; top: 0; left: 0; background-color: var(--bg-color); transition: background-color 0.5s ease; }
+    .screen.active { display: flex; }
+
+    @keyframes gradientBG {
+        0% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
+        100% { background-position: 0% 50%; }
+    }
+
+    #menu-screen, #multi-setup-screen {
+        flex-direction: column; align-items: center; justify-content: center;
+        background: linear-gradient(-45deg, var(--menu-grad-1), var(--menu-grad-2), var(--menu-grad-3), var(--menu-grad-4));
+        background-size: 400% 400%; animation: gradientBG 15s ease infinite; z-index: 2000; padding: 20px;
+    }
+
+    #shop-screen, #spin-screen, #profil-screen, #pass-screen, #defis-screen {
+        flex-direction: column; align-items: center; justify-content: flex-start;
+    }
+
+    .menu-title { font-size: 40px; letter-spacing: 8px; margin-bottom: 5px; color: var(--text-primary); text-shadow: 0 0 20px rgba(255,255,255,0.1); text-align: center; }
+    .menu-author { color: var(--accent-color); font-size: 14px; letter-spacing: 4px; margin-bottom: 40px; font-weight: bold; text-align: center; }
+
+    button {
+        padding: 15px; border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; font-size: 14px; font-weight: bold; text-transform: uppercase; cursor: pointer; transition: all 0.2s; width: 100%; background-color: var(--btn-base); color: var(--text-primary); outline: none;
+    }
+    
+    button:hover:not(:disabled) { background-color: var(--accent-color); color: #000 !important; border-color: var(--accent-color); box-shadow: 0 0 15px rgba(241,196,15,0.4); transform: translateY(-2px); }
+    button:active:not(:disabled) { transform: scale(0.96); }
+    button:disabled { opacity: 0.3; cursor: not-allowed; transform: none; background-color: rgba(0,0,0,0.3) !important; border-color: transparent !important; color: var(--text-secondary) !important; box-shadow: none !important;}
+
+    .btn-main { width: 100%; max-width: 350px; padding: 15px; margin: 10px 0; font-size: 16px; letter-spacing: 2px; }
+
+    .scroll-container { width: 100%; height: 100%; overflow-y: auto; padding: 20px 10px; display: flex; flex-direction: column; align-items: center; }
+    .scroll-container::-webkit-scrollbar { width: 4px; }
+    .scroll-container::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 4px; }
+
+    .grid-layout-5 { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 10px; width: 100%; max-width: 1600px; }
+    
+    .grid-layout-chests { display: flex; flex-direction: column; gap: 15px; width: 100%; max-width: 700px; }
+    .chest-item-card { background-color: var(--side-panel-bg); padding: 15px; border-radius: 12px; display: flex; flex-direction: column; align-items: center; border: 1px solid rgba(255,255,255,0.05); transition: 0.2s; width: 100%; gap: 10px; }
+    .chest-item-card:hover { border-color: rgba(255,255,255,0.2); transform: translateY(-3px); }
+    .chest-item-card .chest-preview { width: 80px; height: 80px; margin: 0; font-size: 40px; background: radial-gradient(circle, rgba(255,255,255,0.1), transparent); border-radius: 12px; display: flex; align-items: center; justify-content: center; filter: drop-shadow(0 0 10px rgba(0,0,0,0.5)); flex-shrink: 0; }
+    .chest-item-card .chest-info { display: flex; flex-direction: column; align-items: center; width: 100%; text-align: center; }
+    .chest-item-card .chest-info h3 { margin: 0 0 5px 0; font-size: 16px; color: var(--text-primary); letter-spacing: 1px; }
+    .chest-item-card .chest-info p { margin: 0; font-size: 12px; color: var(--text-secondary); }
+    .chest-item-card .btn-buy { width: 100%; padding: 12px; font-size: 14px !important; margin: 0; }
+
+    .item-card { background-color: var(--side-panel-bg); padding: 15px; border-radius: 12px; display: flex; flex-direction: column; align-items: center; border: 1px solid rgba(255,255,255,0.05); transition: 0.2s; width: 100%; }
+    .item-card:hover { border-color: rgba(255,255,255,0.2); transform: translateY(-3px); }
+    .item-card h3 { margin: 0 0 10px 0; font-size: 12px; color: var(--text-secondary); letter-spacing: 1px; text-align: center; height: 30px; }
+    .shop-preview { width: 80px; height: 120px; border-radius: 6px; margin-bottom: 15px; border: 2px solid rgba(255,255,255,0.2); display: flex; align-items: center; justify-content: center; font-size: 35px; overflow: hidden; position: relative;}
+
+    .btn-buy { width: 100%; padding: 12px; border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; font-weight: bold; background-color: var(--btn-base); color: white; font-size: 14px !important;}
+
+    #game-screen { flex-direction: column; overflow-y: auto; overflow-x: hidden; }
+
+    #left-panel { order: 2; width: 100%; background-color: var(--side-panel-bg); border-right: none; border-top: 1px solid rgba(255,255,255,0.05); display: flex; flex-direction: column; padding: 15px; height: auto; flex-shrink: 0; transition: background-color 0.5s ease;}
+    #center-panel { order: 1; flex: 1; display: flex; flex-direction: column; position: relative; z-index: 10; min-height: 350px; }
+    #right-panel { order: 3; width: 100%; background-color: var(--side-panel-bg); border-left: none; border-top: 1px solid rgba(255,255,255,0.05); display: flex; flex-direction: column; padding: 15px; height: auto; flex-shrink: 0; transition: background-color 0.5s ease;}
+    
+    .game-author { text-align: center; color: var(--text-secondary); font-size: 14px; letter-spacing: 2px; margin-bottom: 15px; margin-top: 10px; display: flex; justify-content: center; align-items: center; gap: 8px;}
+
+    .info-box { background-color: rgba(255,255,255,0.03); border-radius: 8px; padding: 10px 15px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; border: 1px solid rgba(255,255,255,0.02); }
+    .info-label { font-size: 11px; color: var(--text-secondary); font-weight: bold; letter-spacing: 1px;}
+    .info-value { font-size: 16px; font-weight: bold; color: var(--text-primary); }
+
+    .section-title { font-size: 10px; color: var(--text-secondary); letter-spacing: 2px; margin-top: 10px; margin-bottom: 8px; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 5px; }
+
+    .bet-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; margin-bottom: 5px; }
+    .bet-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
+
+    .bet-grid button { padding: 10px 5px; font-size: 12px; }
+    .bet-grid button:hover:not(:disabled) { background-color: rgba(255,255,255,0.05); border-color: var(--accent-color) !important; color: var(--accent-color) !important; box-shadow: none; transform: translateY(-2px); }
+    
+    #bet-all { grid-column: span 4; }
+    
+    #bet-clear:hover:not(:disabled) { background-color: var(--lose-color); border-color: var(--lose-color); color: white !important; box-shadow: 0 0 10px rgba(192,57,43,0.3); }
+    #btn-distribuer:hover:not(:disabled) { background-color: #3498DB; border-color: #3498DB; color: white !important; box-shadow: 0 0 10px rgba(52,152,219,0.3); }
+
+    .action-btn { margin-bottom: 5px; font-size: 14px; padding: 15px; }
+    #btn-tirer:hover:not(:disabled) { background-color: var(--win-color); border-color: var(--win-color); color: #000 !important; box-shadow: 0 0 15px rgba(39,174,96,0.4); }
+    #btn-rester:hover:not(:disabled) { background-color: var(--lose-color); border-color: var(--lose-color); color: #000 !important; box-shadow: 0 0 15px rgba(192,57,43,0.4); }
+    #btn-doubler:hover:not(:disabled) { background-color: var(--accent-color); border-color: var(--accent-color); color: #000 !important; box-shadow: 0 0 15px rgba(241,196,15,0.4); }
+
+    .stat-item { margin-bottom: 10px; display: flex; flex-direction: row; justify-content: space-between; align-items: center; background-color: rgba(0,0,0,0.2); padding: 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.02);}
+    .stat-label { font-size: 11px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 1px; }
+    .stat-val { font-size: 18px; font-weight: bold; color: var(--text-primary); }
+
+    .level-container { margin-bottom: 20px; padding: 15px; background-color: rgba(0,0,0,0.3); border-radius: 10px; border: 1px solid rgba(255,255,255,0.05); }
+    .level-header { display: flex; justify-content: space-between; font-size: 11px; font-weight: bold; color: var(--accent-color); margin-bottom: 8px; letter-spacing: 1px;}
+    .level-bar { width: 100%; height: 6px; background-color: rgba(255,255,255,0.1); border-radius: 3px; overflow: hidden; }
+    .level-fill { height: 100%; background: linear-gradient(90deg, var(--accent-color), #E67E22); width: 0%; transition: width 0.5s ease; }
+
+    .chest-indicator { display: flex; justify-content: center; gap: 4px; margin-top: 10px; flex-wrap: wrap; width: 100%; margin-left: auto; margin-right: auto;}
+    .chest-dot { width: 10px; height: 10px; border-radius: 50%; background-color: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); transition: 0.3s;}
+    .chest-dot.active { background-color: var(--accent-color); box-shadow: 0 0 10px var(--accent-color); border-color: var(--accent-color);}
+
+    .objectif-box { position: absolute; top: 10px; right: 10px; border: 1px solid rgba(255,255,255,0.1); color: var(--text-secondary); padding: 5px 15px; border-radius: 15px; font-weight: bold; font-size: 11px; letter-spacing: 2px; z-index: 5; background-color: rgba(0,0,0,0.4); backdrop-filter: blur(5px);}
+
+    #play-area { flex: 1; display: flex; flex-direction: column; justify-content: flex-start; align-items: center; padding: 40px 10px 10px 10px; overflow-y: auto; gap: 20px;}
+    
+    .player-zone { display: flex; flex-direction: column; align-items: center; width: 100%; position: relative; }
+    .zone-label { font-size: 12px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 2px; margin-bottom: 10px; text-align: center; display: flex; align-items: center; justify-content: center; gap: 8px;}
+    
+    .hand-row { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; width: 100%; }
+    .cards-container { display: flex; justify-content: center; gap: 5px; min-height: 100px; flex-wrap: wrap;}
+
+    .multi-player-box { margin: 5px; padding: 15px; border-radius: 10px; background: rgba(0,0,0,0.2); display: flex; flex-direction: column; align-items: center; border: 2px solid transparent; transition: all 0.3s; width: 100%; max-width: 340px; }
+    .multi-player-box.active { border-color: var(--accent-color); box-shadow: 0 0 15px rgba(241,196,15,0.4); transform: scale(1.02); }
+    .multi-cards-container { display: flex; justify-content: center; gap: 5px; min-height: 100px; flex-wrap: wrap; }
+
+    .card { width: 60px; height: 90px; background-color: var(--card-bg); border-radius: 6px; color: var(--card-text); box-shadow: 0 5px 10px rgba(0,0,0,0.3); display: flex; flex-direction: column; justify-content: space-between; padding: 5px; font-weight: bold; box-sizing: border-box; flex-shrink: 0;}
+    .card-rank { font-size: 24px; line-height: 1; }
+    .card-suit { font-size: 24px; text-align: right; }
+    .card.red { color: var(--card-suit-red); }
+
+    .card-back-custom { background-color: #34495E; background-image: repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(255,255,255,0.05) 10px, rgba(255,255,255,0.05) 20px); border: 2px solid #2C3E50; display: flex; align-items: center; justify-content: center; font-size: 24px !important; border-radius: 6px;}
+
+    .card-back-67 {
+        background: linear-gradient(135deg, #111, #444);
+        border: 2px solid #FFD700 !important;
+        box-shadow: inset 0 0 10px rgba(255,215,0,0.5);
+        position: relative;
+        border-radius: 6px;
+    }
+    .card-back-67::before {
+        content: '★';
+        position: absolute;
+        top: 5px; right: 5px; font-size: 12px; color: #FFD700;
+    }
+    .card-back-67::after {
+        content: '67';
+        color: #FFD700;
+        font-size: 24px !important;
+        font-weight: bold;
+        text-shadow: 0 0 5px #FF0000, 0 0 10px #FFD700;
+    }
+
+    @keyframes dealCardAnim { 0% { opacity: 0; transform: translateY(-20px) scale(0.9); } 100% { opacity: 1; transform: translateY(0) scale(1); } }
+    .card-anim { animation: dealCardAnim 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+
+    @keyframes popInReward { 0% { transform: scale(0) rotate(-10deg); opacity: 0; } 70% { transform: scale(1.1) rotate(5deg); opacity: 1; } 100% { transform: scale(1) rotate(0deg); opacity: 1; } }
+    .chest-reward-card { animation: popInReward 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+
+    @keyframes boxOpenPhase1 { 0% { transform: scale(1) rotate(0deg); } 20% { transform: scale(1.1) rotate(-10deg); } 40% { transform: scale(1.1) rotate(10deg); } 60% { transform: scale(1.1) rotate(-10deg); } 80% { transform: scale(1.1) rotate(10deg); } 100% { transform: scale(1.2) rotate(0deg); } }
+    .chest-anim.opening { animation: boxOpenPhase1 1s forwards; }
+
+    .score-bubble {
+        background-color: rgba(0,0,0,0.6); border: 1px solid rgba(255,255,255,0.1);
+        color: var(--text-primary); padding: 8px 15px; border-radius: 12px; font-weight: bold; font-size: 16px;
+        min-width: 50px; text-align: center; visibility: hidden; transition: all 0.3s; flex-shrink: 0;
+    }
+    .blackjack-bubble { border-color: var(--accent-color); color: var(--accent-color); box-shadow: 0 0 10px rgba(241,196,15,0.3); }
+
+    @keyframes winAnim { 0% { transform: scale(1); box-shadow: 0 0 0 rgba(39,174,96,0); } 50% { transform: scale(1.05); box-shadow: 0 0 30px rgba(39,174,96,0.6); } 100% { transform: scale(1); box-shadow: 0 0 15px rgba(39,174,96,0.3); } }
+    @keyframes loseAnim { 0% { transform: translateX(0); } 20% { transform: translateX(-10px); } 40% { transform: translateX(10px); } 60% { transform: translateX(-10px); } 80% { transform: translateX(10px); } 100% { transform: translateX(0); } }
+    @keyframes tieAnim { 0% { transform: scale(1); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+
+    .banner-result {
+        position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+        background-color: rgba(10, 15, 20, 0.95); 
+        z-index: 9999; 
+        display: none; flex-direction: column; align-items: center; justify-content: center; gap: 20px;
+        backdrop-filter: blur(10px); pointer-events: auto; padding: 20px;
+    }
+    .banner-result.active { display: flex; }
+    
+    .banner-content {
+        text-align: center; display: flex; flex-direction: column; align-items: center; gap: 15px;
+        padding: 30px 20px; border-radius: 15px; background: rgba(255,255,255,0.03);
+        border: 2px solid rgba(255,255,255,0.05); width: 100%; max-width: 400px;
+    }
+    
+    .banner-result.win .banner-content { animation: winAnim 0.6s forwards; border-color: var(--win-color); box-shadow: 0 0 15px rgba(39,174,96,0.3);}
+    .banner-result.lose .banner-content { animation: loseAnim 0.5s forwards; border-color: var(--lose-color); box-shadow: 0 0 15px rgba(192,57,43,0.3);}
+    .banner-result.tie .banner-content { animation: tieAnim 0.6s forwards; border-color: var(--tie-color); box-shadow: 0 0 15px rgba(127,140,141,0.3);}
+    
+    .result-text { font-size: 32px; font-weight: bold; text-transform: uppercase; letter-spacing: 5px; margin: 0;}
+    .result-text.win { color: var(--win-color); text-shadow: 0 0 15px rgba(39,174,96,0.5); }
+    .result-text.lose { color: var(--lose-color); text-shadow: 0 0 15px rgba(192,57,43,0.5); }
+    .result-text.tie { color: var(--tie-color); }
+    .result-text.bj { color: var(--accent-color); text-shadow: 0 0 20px var(--accent-color); }
+
+    .hasard-container-wrapper { display: flex; width: 100%; flex-direction: column; justify-content: flex-start; align-items: center; gap: 40px; margin-top: 10px; }
+    .spin-container, .slot-container { display: flex; flex-direction: column; align-items: center; justify-content: flex-start; background: rgba(0,0,0,0.3); padding: 20px; border-radius: 15px; border: 1px solid rgba(255,255,255,0.05); width: 100%; }
+    .hasard-title { font-size: 24px; color: var(--accent-color); text-shadow: 0 0 10px rgba(241,196,15,0.8); margin-bottom: 20px; text-transform: uppercase; letter-spacing: 2px; text-align: center; }
+
+    .wheel-container { position: relative; width: 280px; height: 280px; margin-bottom: 20px; flex-shrink: 0; transform: scale(0.9); }
+    
+    .wheel { width: 100%; height: 100%; border-radius: 50%; border: 4px solid var(--text-primary); position: relative; overflow: hidden; transition: transform 4s cubic-bezier(0.175, 0.885, 0.32, 1.05); box-shadow: 0 0 15px rgba(0,0,0,0.5); background: conic-gradient(
+        #1A2530 0deg 30deg, #2C3E50 30deg 60deg,
+        #1A2530 60deg 90deg, #2C3E50 90deg 120deg,
+        #1A2530 120deg 150deg, #2C3E50 150deg 180deg,
+        #1A2530 180deg 210deg, #2C3E50 210deg 240deg,
+        #1A2530 240deg 270deg, #2C3E50 270deg 300deg,
+        #1A2530 300deg 330deg, #2C3E50 330deg 360deg
+    ); }
+    .wheel-pointer { position: absolute; top: -15px; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 15px solid transparent; border-right: 15px solid transparent; border-top: 30px solid var(--text-primary); z-index: 10; filter: drop-shadow(0 2px 2px rgba(0,0,0,0.5));}
+    .wheel-text { position: absolute; top: 50%; left: 50%; width: 100px; height: 24px; margin-top: -12px; margin-left: -50px; text-align: center; font-weight: bold; font-size: 14px !important; color: var(--text-primary); transform-origin: 50% 50%; text-shadow: 1px 1px 2px #000;}
+    
+    .spin-result-container { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; width: 100%; margin-bottom: 15px; }
+    .spin-result-text { font-size: 20px; font-weight: bold; color: var(--accent-color); text-transform: uppercase; letter-spacing: 1px; text-align: center; width: 100%; min-height: 25px; }
+
+    @keyframes wheelResultPop { 0% { transform: scale(0.8); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+    .spin-result-anim { animation: wheelResultPop 0.5s ease forwards; }
+
+    .profil-wrapper { display: flex; flex-direction: column; width: 100%; padding: 10px; gap: 20px; }
+    .profil-left { display: flex; flex-direction: column; align-items: center; width: 100%; gap: 20px; }
+    .profil-right { display: flex; flex-direction: column; align-items: center; width: 100%; background-color: var(--side-panel-bg); padding: 20px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.05); }
+
+    .profil-container { width: 100%; background-color: var(--side-panel-bg); padding: 20px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.05); }
+    .profil-row { display: flex; flex-direction: column; margin-bottom: 20px; gap: 8px;}
+    .profil-label { color: var(--text-secondary); font-size: 12px; letter-spacing: 1px; font-weight: bold; }
+    .profil-input { background-color: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); color: white; padding: 10px; border-radius: 6px; font-size: 14px; width: 100%; outline: none; font-family: inherit;}
+    .color-picker { display: flex; gap: 8px; flex-wrap: wrap; }
+    .color-btn { width: 25px; height: 25px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; }
+    .color-btn.active { border-color: white; }
+
+    .casier-grid-items { display: flex; flex-wrap: wrap; justify-content: center; gap: 15px; width: 100%; align-content: flex-start; }
+    .casier-item { flex: 1 1 100px; max-width: 140px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; display: flex; flex-direction: column; align-items: center; padding: 10px; cursor: pointer; transition: 0.2s; position: relative;}
+    .casier-item:hover { background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.3); }
+    .casier-item.active { border-color: var(--accent-color); box-shadow: 0 0 10px rgba(241,196,15,0.3); }
+    .casier-item-preview { width: 100%; max-width: 80px; aspect-ratio: 2/3; height: auto; border-radius: 4px; border: 1px solid rgba(255,255,255,0.2); display: flex; align-items: center; justify-content: center; font-size: 30px; margin-bottom: 10px; }
+    .casier-item-name { font-size: 10px; font-weight: bold; text-align: center; color: var(--text-secondary); text-transform: uppercase; }
+    .equipped-badge { position: absolute; top: -5px; right: -5px; background: var(--accent-color); color: black; font-size: 9px; padding: 3px 6px; border-radius: 6px; font-weight: bold; display: none; }
+    .casier-item.active .equipped-badge { display: block; }
+
+    .chest-modal { position: absolute; top:0; left:0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 4000; display: none; flex-direction: column; align-items: center; justify-content: center; padding: 20px;}
+    .chest-modal.active { display: flex; }
+    .chest-anim { font-size: 80px; margin-bottom: 20px; display:flex; align-items:center; justify-content:center; }
+    .chest-reward { font-size: 18px; color: var(--accent-color); letter-spacing: 1px; font-weight: bold; margin-bottom: 20px; text-transform: uppercase; text-align:center;}
+
+    .anim-67-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.9); z-index: 10000; display: none; align-items: center; justify-content: center; font-size: 80px; font-weight: bold; color: #FFD700; text-shadow: 0 0 30px #FF0000, 0 0 50px #FFD700; text-align: center; }
+    .anim-67-overlay.active { display: flex; animation: popInReward 0.5s infinite alternate; }
+
+    .setup-btn-group { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; width: 100%; max-width: 300px;}
+    .setup-btn { padding: 15px; font-size: 16px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.3); color: white; cursor: pointer; transition: 0.2s; }
+    .setup-btn:hover { background: rgba(255,255,255,0.1); border-color: white; }
+    .setup-btn.active { background: var(--accent-color); color: black; border-color: var(--accent-color); box-shadow: 0 0 10px rgba(241,196,15,0.4); }
+
+    .slot-machine { display: flex; gap: 10px; background: #111; padding: 20px; border: 3px solid var(--accent-color); border-radius: 12px; margin-bottom: 10px; box-shadow: inset 0 0 20px #000; z-index: 2; position: relative; overflow: hidden;}
+    .reel { width: 60px; height: 60px; background: white; border-radius: 6px; display: flex; justify-content: center; align-items: center; color: black; box-shadow: 0 3px 6px rgba(0,0,0,0.5); font-size: 30px;}
+    .reel.spinning { animation: spinReel 0.1s linear infinite; filter: blur(2px); }
+    @keyframes spinReel { 0% { transform: translateY(-5px); } 100% { transform: translateY(5px); } }
+
+    .avatar-btn { cursor: pointer; font-size: 20px; padding: 5px; border-radius: 5px; border: 2px solid transparent; transition: 0.2s; }
+    .avatar-btn:hover { background: rgba(255,255,255,0.1); }
+    .avatar-btn.active { border-color: var(--accent-color); background: rgba(255,255,255,0.2); }
+
+    .lever-container { position: relative; width: 40px; height: 100px; margin-left: -5px; margin-bottom: 20px; cursor: pointer; z-index: 1; }
+    .lever-base { position: absolute; bottom: 0; left: 0; width: 20px; height: 40px; background: #555; border-radius: 4px; }
+    .lever-stick { position: absolute; bottom: 20px; left: 6px; width: 8px; height: 80px; background: #7f8c8d; transform-origin: bottom center; transition: transform 0.3s; }
+    .lever-ball { position: absolute; top: -10px; left: -6px; width: 20px; height: 20px; background: #e74c3c; border-radius: 50%; box-shadow: inset -2px -2px 6px rgba(0,0,0,0.5); }
+    .lever-container.pulled .lever-stick { transform: rotate(45deg); }
+
+    .brawl-pass-wrapper { width: 100%; overflow-x: auto; overflow-y: hidden; padding: 15px 0; margin-top: 10px; display: flex; align-items: center;}
+    .brawl-pass-wrapper::-webkit-scrollbar { height: 8px; }
+    .brawl-pass-wrapper::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.3); border-radius: 4px; }
+    .brawl-pass-container { display: flex; flex-direction: row; width: max-content; gap: 10px; padding: 0 15px; align-items: center; min-height: 200px; }
+    
+    .brawl-pass-tier { width: 110px; background: rgba(0,0,0,0.4); border: 2px solid rgba(255,255,255,0.1); border-radius: 10px; display: flex; flex-direction: column; align-items: center; padding: 8px; position: relative; flex-shrink: 0; transition: 0.3s; }
+    .brawl-pass-tier.unlocked { border-color: var(--accent-color); background: rgba(241,196,15,0.1); box-shadow: 0 0 10px rgba(241,196,15,0.2); }
+    .brawl-pass-tier.claimed { border-color: var(--win-color); background: rgba(39,174,96,0.1); opacity: 0.8; }
+    
+    .brawl-tier-num { font-size: 14px; font-weight: bold; margin-bottom: 5px; color: var(--text-secondary); background: rgba(0,0,0,0.5); padding: 2px 10px; border-radius: 8px; }
+    .brawl-pass-tier.unlocked .brawl-tier-num { color: var(--accent-color); }
+    .brawl-pass-tier.claimed .brawl-tier-num { color: var(--win-color); }
+    
+    .brawl-icon-container { font-size: 25px; margin: 8px 0; flex: 1; display: flex; align-items: center; justify-content: center; filter: drop-shadow(0 0 5px rgba(0,0,0,0.5)); }
+    .brawl-icon-container .shop-preview { width: 25px !important; height: 38px !important; font-size: 10px !important; border-width: 1px; border-radius: 2px; margin: 0; }
+    .brawl-reward-text { font-weight: bold; text-align: center; font-size: 9px; min-height: 20px; text-transform: uppercase; letter-spacing: 1px; color: var(--text-primary); display: flex; align-items: center; justify-content: center;}
+
+    .defis-container-box { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
+    .defi-card { background: rgba(0,0,0,0.3); padding: 12px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.05); transition: 0.3s; position: relative; overflow: hidden; }
+    .defi-card.done { border-color: var(--win-color); }
+    .defi-title { font-size: 12px; margin-bottom: 8px; display:flex; justify-content:space-between; color: var(--text-primary); font-weight: bold;}
+    .defi-title span.done-icon { display: none; }
+    .defi-card.done .defi-title span.done-icon { display: inline; color: var(--win-color); margin-left: 5px;}
+    .defi-reward { color: var(--accent-color); font-weight: bold; }
+    .defi-progress-text { font-size: 10px; text-align: right; margin-top: 4px; color: var(--text-secondary); }
+    .defi-claim-btn { display: none; margin-top: 8px; padding: 6px; font-size: 10px; }
+    .defi-card.done:not(.claimed) .defi-claim-btn { display: block; }
+    .defi-card.claimed .defi-title span.done-icon { content: "RÉCUPÉRÉ"; font-size: 9px; background: var(--win-color); color: white; padding: 2px 4px; border-radius: 3px;}
+    
+    @keyframes claimFlash { 0% { background: var(--win-color); transform: scale(1.02); } 100% { background: rgba(0,0,0,0.3); transform: scale(1); } }
+    .defi-claim-anim { animation: claimFlash 0.6s ease; }
+</style>
+</head>
+<body>
+
+    <div id="top-nav">
+        <div class="nav-brand">BLACKJACK <span>GAME</span> <span id="nav-avatar" style="font-size: 16px; margin-left: 8px;"></span></div>
+        <div class="nav-tabs">
+            <div class="nav-tab active" id="tab-game" onclick="changerEcran('game-screen')">JOUER</div>
+            <div class="nav-tab" id="tab-shop" onclick="changerEcran('shop-screen')">BOUTIQUE</div>
+            <div class="nav-tab" id="tab-pass" onclick="changerEcran('pass-screen')">PASS 67<span id="pass-badge" class="pass-badge" style="display:none;">!</span></div>
+            <div class="nav-tab" id="tab-defis" onclick="changerEcran('defis-screen')">DÉFIS<span id="defis-badge" class="defis-badge" style="display:none;">!</span></div>
+            <div class="nav-tab" id="tab-spin" onclick="changerEcran('spin-screen')">HASARD</div>
+            <div class="nav-tab" id="tab-profil" onclick="changerEcran('profil-screen')">PROFIL</div>
+            <div class="nav-tab" id="tab-menu" onclick="changerEcran('menu-screen')" style="color: var(--lose-color);">QUITTER</div>
+        </div>
+        <div class="nav-solde" id="nav-solde-global">
+            <div class="currency-block"><span>🪙</span> <span class="display-solde">1500</span></div>
+            <div class="currency-block" style="color:cyan;"><span>💎</span> <span class="display-diamants">0</span></div>
+        </div>
+        <div class="nav-solde" id="nav-multi-avatars" style="display:none; gap: 10px; background-color: transparent; border: none; font-size: 20px;">
+        </div>
+    </div>
+
+    <div id="main-content">
+
+        <div id="menu-screen" class="screen active">
+            <div class="menu-title">BLACKJACK</div>
+            <div class="menu-author">BY YOSKAN GAME</div>
+            <button class="btn-main" onclick="lancerSolo()">JOUER EN SOLO</button>
+            <button class="btn-main" onclick="afficherMultiSetup()">MULTIJOUEUR</button>
+        </div>
+
+        <div id="multi-setup-screen" class="screen">
+            <h2 style="font-size: 24px; letter-spacing: 2px; margin-bottom: 30px; color: var(--text-primary); text-align: center;">MODE MULTIJOUEUR</h2>
+            <div class="setup-btn-group">
+                <button class="setup-btn" id="btn-p2" onclick="setMultiPlayers(2)">2 JOUEURS</button>
+                <button class="setup-btn" id="btn-p3" onclick="setMultiPlayers(3)">3 JOUEURS</button>
+                <button class="setup-btn" id="btn-p4" onclick="setMultiPlayers(4)">4 JOUEURS</button>
+            </div>
+            <div id="multi-names-container" style="display:flex; flex-direction:column; gap:10px; margin-bottom:30px; width:100%; max-width: 350px;"></div>
+            <button class="btn-main" id="btn-start-multi" style="display:none; background-color: var(--accent-color); color: black;" onclick="demarrerMulti()">LANCER LA PARTIE</button>
+            <button class="btn-main" style="background-color: var(--lose-color); margin-top: 10px;" onclick="changerEcran('menu-screen')">RETOUR AU MENU</button>
+        </div>
+
+        <div id="profil-screen" class="screen">
+            <div class="profil-wrapper">
+                <div class="profil-left">
+                    <div class="profil-container">
+                        <h2 style="border-bottom:none; margin-bottom:20px; font-size: 16px;">PERSONNALISATION</h2>
+                        <div class="profil-row">
+                            <span class="profil-label">AVATAR</span>
+                            <div id="solo-avatar-selector" style="display:flex; gap:5px; font-size:20px; flex-wrap: wrap; width: 100%;"></div>
+                        </div>
+                        <div class="profil-row">
+                            <span class="profil-label">THÈME</span>
+                            <div class="color-picker" id="theme-picker">
+                                <div class="color-btn active" style="background: #1A2530;" onclick="changerTheme('dark', this)"></div>
+                                <div class="color-btn" style="background: #0f380f;" onclick="changerTheme('casino', this)"></div>
+                                <div class="color-btn" style="background: #2b0f38;" onclick="changerTheme('royal', this)"></div>
+                                <div class="color-btn" style="background: #0f2438;" onclick="changerTheme('ocean', this)"></div>
+                                <div class="color-btn" style="background: #380f0f;" onclick="changerTheme('crimson', this)"></div>
+                            </div>
+                        </div>
+                        <div class="profil-row">
+                            <span class="profil-label">COULEUR D'ACCENTUATION</span>
+                            <div class="color-picker">
+                                <div class="color-btn active" style="background-color: #F1C40F;" onclick="changerCouleur('#F1C40F', this)"></div>
+                                <div class="color-btn" style="background-color: #3498DB;" onclick="changerCouleur('#3498DB', this)"></div>
+                                <div class="color-btn" style="background-color: #E74C3C;" onclick="changerCouleur('#E74C3C', this)"></div>
+                                <div class="color-btn" style="background-color: #2ECC71;" onclick="changerCouleur('#2ECC71', this)"></div>
+                                <div class="color-btn" style="background-color: #9B59B6;" onclick="changerCouleur('#9B59B6', this)"></div>
+                                <div class="color-btn" style="background-color: #E67E22;" onclick="changerCouleur('#E67E22', this)"></div>
+                                <div class="color-btn" style="background-color: #1ABC9C;" onclick="changerCouleur('#1ABC9C', this)"></div>
+                                <div class="color-btn" style="background-color: #FF69B4;" onclick="changerCouleur('#FF69B4', this)"></div>
+                                <div class="color-btn" style="background-color: #00FFFF;" onclick="changerCouleur('#00FFFF', this)"></div>
+                                <div class="color-btn" style="background-color: #FFFFFF;" onclick="changerCouleur('#FFFFFF', this)"></div>
+                            </div>
+                        </div>
+                        <div class="profil-row">
+                            <span class="profil-label">SAUVEGARDE</span>
+                            <button class="btn-buy" style="width: 100%; background-color: var(--lose-color); padding: 10px;" onclick="reinitialiserSauvegarde()">RÉINITIALISER</button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="profil-right">
+                    <h2 style="letter-spacing: 2px; text-align:center; width: 100%; margin-bottom: 15px; font-size: 16px;">VOTRE CASIER</h2>
+                    <div id="casier-grid" class="casier-grid-items">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="pass-screen" class="screen">
+            <div class="scroll-container">
+                <h2 style="font-size: 28px; color: var(--accent-color); letter-spacing: 4px; text-transform: uppercase; margin-bottom: 15px; text-shadow: 0 0 10px rgba(241,196,15,0.5);">PASS 67</h2>
+                <div class="level-container" style="width: 100%; max-width: 1200px; margin-bottom: 15px; background: rgba(0,0,0,0.5);">
+                    <div class="level-header"><span style="font-size: 14px;">NIVEAU <span id="pass-hud-niv">1</span></span><span id="pass-hud-xp" style="color:var(--text-secondary);">0/100 XP</span></div>
+                    <div class="level-bar" style="height: 10px;"><div class="level-fill" id="pass-hud-xp-fill"></div></div>
+                </div>
+                <div class="brawl-pass-wrapper" id="brawl-pass-wrap">
+                    <div id="pass-tiers-container" class="brawl-pass-container"></div>
+                </div>
+            </div>
+        </div>
+
+        <div id="defis-screen" class="screen">
+            <div class="scroll-container">
+                <h2 style="font-size: 28px; color: var(--accent-color); letter-spacing: 4px; text-transform: uppercase; margin-bottom: 20px;">DÉFIS</h2>
+                
+                <h3 style="width: 100%; max-width: 1000px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 5px; color: var(--text-secondary); text-align: left; font-size: 14px;">QUOTIDIENS</h3>
+                <div class="defis-container-box" id="defis-quotidiens" style="margin-bottom: 25px; width: 100%;"></div>
+                
+                <h3 style="width: 100%; max-width: 1000px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 5px; color: var(--text-secondary); text-align: left; font-size: 14px;">HEBDOMADAIRES</h3>
+                <div class="defis-container-box" id="defis-hebdos" style="margin-bottom: 25px; width: 100%;"></div>
+                
+                <h3 style="width: 100%; max-width: 1000px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 5px; color: var(--text-secondary); text-align: left; font-size: 14px;">SAISONNIERS</h3>
+                <div class="defis-container-box" id="defis-saisonniers" style="margin-bottom: 25px; width: 100%;"></div>
+            </div>
+        </div>
+
+        <div id="shop-screen" class="screen">
+            <div class="scroll-container">
+                <h2 style="text-align: left; border:none; margin-bottom: 15px; width: 100%; max-width: 1400px; font-size: 18px;">COFFRES MYSTÈRES</h2>
+                <div class="grid-layout-chests" style="margin-bottom: 30px;">
+                    <div class="chest-item-card">
+                        <div style="display:flex; align-items:center; flex-direction: column; gap: 5px;">
+                            <div class="chest-preview">📦</div>
+                            <div class="chest-info">
+                                <h3>COFFRE TAHANE</h3>
+                                <p>Objets communs et rares</p>
+                            </div>
+                        </div>
+                        <button class="btn-buy" id="btn-coffre-1" onclick="acheterCoffre(1, 1500)">1500 🪙</button>
+                    </div>
+                    <div class="chest-item-card">
+                        <div style="display:flex; align-items:center; flex-direction: column; gap: 5px;">
+                            <div class="chest-preview">🎁</div>
+                            <div class="chest-info">
+                                <h3>COFFRE SUPER TAHANE</h3>
+                                <p>Objets rares et épiques</p>
+                            </div>
+                        </div>
+                        <button class="btn-buy" id="btn-coffre-2" onclick="acheterCoffre(2, 5000)">5000 🪙</button>
+                    </div>
+                    <div class="chest-item-card">
+                        <div style="display:flex; align-items:center; flex-direction: column; gap: 5px;">
+                            <div class="chest-preview">💎</div>
+                            <div class="chest-info">
+                                <h3>COFFRE TAHANE FARHANE</h3>
+                                <p>Objets épiques et légendaires</p>
+                            </div>
+                        </div>
+                        <button class="btn-buy" id="btn-coffre-3" onclick="acheterCoffre(3, 15000)">15000 🪙</button>
+                    </div>
+                </div>
+
+                <h2 style="text-align: left; border:none; margin-bottom: 15px; width: 100%; max-width: 1600px; font-size: 18px;">COSMÉTIQUES (CARTES)</h2>
+                <div id="shop-cards-grid" class="grid-layout-5" style="padding-bottom: 30px;">
+                </div>
+            </div>
+        </div>
+
+        <div id="spin-screen" class="screen">
+            <div class="scroll-container" style="justify-content: flex-start; padding: 20px 10px;">
+                
+                <div class="hasard-container-wrapper">
+                    <div class="spin-container">
+                        <h3 class="hasard-title">LA ROUE DU 67</h3>
+                        <div class="spin-result-container">
+                            <div class="wheel-container">
+                                <div class="wheel-pointer"></div>
+                                <div class="wheel" id="wheel">
+                                    <div class="wheel-text" style="transform: rotate(15deg) translateY(-120px); font-size: 16px;">6️⃣7️⃣</div>
+                                    <div class="wheel-text" style="transform: rotate(45deg) translateY(-120px);">100🪙</div>
+                                    <div class="wheel-text" id="wheel-cosmo-1" style="transform: rotate(75deg) translateY(-120px); font-size: 20px;">❓</div>
+                                    <div class="wheel-text" style="transform: rotate(105deg) translateY(-120px);">500🪙</div>
+                                    <div class="wheel-text" style="transform: rotate(135deg) translateY(-120px); color:cyan;">1💎</div>
+                                    <div class="wheel-text" id="wheel-cosmo-2" style="transform: rotate(165deg) translateY(-120px); font-size: 20px;">❓</div>
+                                    <div class="wheel-text" style="transform: rotate(195deg) translateY(-120px);">1000🪙</div>
+                                    <div class="wheel-text" style="transform: rotate(225deg) translateY(-120px); color:cyan;">2💎</div>
+                                    <div class="wheel-text" id="wheel-cosmo-3" style="transform: rotate(255deg) translateY(-120px); font-size: 20px;">❓</div>
+                                    <div class="wheel-text" style="transform: rotate(285deg) translateY(-120px);">2500🪙</div>
+                                    <div class="wheel-text" style="transform: rotate(315deg) translateY(-120px); color:cyan;">5💎</div>
+                                    <div class="wheel-text" style="transform: rotate(345deg) translateY(-120px);">5000🪙</div>
+                                </div>
+                            </div>
+                            <div class="spin-result-text" id="spin-msg"></div>
+                        </div>
+                        <button class="btn-main" style="width: 100%; padding: 15px; font-size: 14px;" id="btn-spin" onclick="lancerSpin()">TOURNER (200 🪙)</button>
+                    </div>
+
+                    <div class="slot-container">
+                        <h3 class="hasard-title">LUCKY 67</h3>
+                        <div class="spin-result-container">
+                            <div style="display:flex; align-items:flex-end;">
+                                <div class="slot-machine">
+                                    <div id="reel-1" class="reel">🪙</div>
+                                    <div id="reel-2" class="reel">💎</div>
+                                    <div id="reel-3" class="reel">❓</div>
+                                </div>
+                                <div class="lever-container" id="slot-lever" onclick="lancerSlot()">
+                                    <div class="lever-base"></div>
+                                    <div class="lever-stick"><div class="lever-ball"></div></div>
+                                </div>
+                            </div>
+                            <div class="spin-result-text" id="slot-msg"></div>
+                        </div>
+                        
+                        <button class="btn-main" style="width: 100%; padding: 15px; font-size: 14px;" id="btn-slot" onclick="lancerSlot()">TIRER (200 🪙)</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="game-screen" class="screen">
+            <div id="center-panel">
+                <div class="objectif-box">OBJECTIF: 21</div>
+                
+                <div id="result-banner" class="banner-result">
+                    <div class="banner-content">
+                        <div id="result-msg" class="result-text"></div>
+                    </div>
+                </div>
+
+                <div id="play-area">
+                    <div class="player-zone">
+                        <div class="zone-label">CROUPIER</div>
+                        <div class="hand-row">
+                            <div id="croupier-score" class="score-bubble"></div>
+                            <div id="croupier-cards" class="cards-container"></div>
+                        </div>
+                    </div>
+
+                    <div class="player-zone" id="solo-zone">
+                        <div class="zone-label">VOTRE MAIN</div>
+                        <div class="hand-row">
+                            <div id="joueur-score" class="score-bubble"></div>
+                            <div id="joueur-cards" class="cards-container"></div>
+                        </div>
+                    </div>
+
+                    <div id="multi-zone" style="display:none; width:100%; flex-wrap:wrap; justify-content:center; margin-top:10px; gap: 10px;">
+                    </div>
+                </div>
+            </div>
+            
+            <div id="left-panel">
+                <div class="info-box">
+                    <span class="info-label">SOLDE</span>
+                    <span class="info-value" id="hud-solde">1500</span>
+                </div>
+                <div class="info-box">
+                    <span class="info-label">MISE</span>
+                    <span id="mise-val" class="info-value">0</span>
+                </div>
+
+                <div class="section-title">COMPTEUR DE MISE</div>
+                <div class="bet-grid">
+                    <button id="bet-10" onclick="miser(10)">+ 10</button>
+                    <button id="bet-50" onclick="miser(50)">+ 50</button>
+                    <button id="bet-100" onclick="miser(100)">+ 100</button>
+                    <button id="bet-1000" onclick="miser(1000)">+ 1000</button>
+                </div>
+                <div class="bet-grid" style="margin-bottom: 5px;">
+                    <button id="bet-all" onclick="miser('all')" style="grid-column: span 4; color: #D7BDE2;">ALL IN</button>
+                </div>
+                <div class="bet-grid-2">
+                    <button id="bet-clear" onclick="annulerMise()" style="color: #F5B7B1;">ANNULER</button>
+                    <button id="btn-distribuer" onclick="distribuer()" style="color: var(--accent-color);">JOUER</button>
+                </div>
+
+                <div class="section-title">ACTIONS DE JEU</div>
+                <button class="action-btn" id="btn-tirer" onclick="tirer()" style="color: #A9DFBF;">TIRER</button>
+                <button class="action-btn" id="btn-rester" onclick="rester()" style="color: #F5B7B1;">RESTER</button>
+                <button class="action-btn" id="btn-doubler" onclick="doubler()" style="color: var(--accent-color);">DOUBLER</button>
+            </div>
+
+            <div id="right-panel">
+                <div id="solo-stats">
+                    <div class="level-container">
+                        <div class="level-header"><span>NIVEAU <span id="hud-niv">1</span></span><span id="hud-xp">0/100 XP</span></div>
+                        <div class="level-bar"><div class="level-fill" id="hud-xp-fill"></div></div>
+                        
+                        <div class="chest-indicator">
+                            <div class="chest-dot" id="dot-1"></div>
+                            <div class="chest-dot" id="dot-2"></div>
+                            <div class="chest-dot" id="dot-3"></div>
+                            <div class="chest-dot" id="dot-4"></div>
+                            <div class="chest-dot" id="dot-5"></div>
+                            <div class="chest-dot" id="dot-6"></div>
+                            <div class="chest-dot" id="dot-7"></div>
+                            <div class="chest-dot" id="dot-8"></div>
+                            <div class="chest-dot" id="dot-9"></div>
+                        </div>
+                        <div style="font-size:10px; color:var(--text-secondary); text-align:center; margin-top:5px; letter-spacing:1px;">SÉRIE DE VICTOIRES (3/6/9 = COFFRES)</div>
+                    </div>
+                    
+                    <div class="stat-item">
+                        <span class="stat-label">MEILLEUR SCORE</span>
+                        <span id="stat-best" class="stat-val" style="color: var(--accent-color);">1500</span>
+                    </div>
+
+                    <div class="stat-item">
+                        <span class="stat-label">MAINS JOUÉES</span>
+                        <span id="stat-jouees" class="stat-val">0</span>
+                    </div>
+                    
+                    <div class="stat-item">
+                        <span class="stat-label">TAUX DE VICTOIRE</span>
+                        <span id="stat-wr" class="stat-val">0%</span>
+                    </div>
+                    
+                    <div class="stat-item" id="stat-hilo-container" style="border-top: 1px solid rgba(255,255,255,0.05); padding-top: 15px; margin-top: 5px;">
+                        <span class="stat-label">COMPTEUR (HI-LO)</span>
+                        <span id="stat-compteur" class="stat-val" style="color: var(--text-secondary);">0</span>
+                    </div>
+                </div>
+
+                <div id="multi-stats" style="display:none;">
+                    <div class="section-title" style="font-size: 12px; margin-bottom: 10px;">JOUEURS</div>
+                    <div id="multi-players-list"></div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <div id="chest-modal" class="chest-modal">
+        <div class="chest-anim" id="chest-anim-box">📦</div>
+        <div class="chest-reward" id="chest-reward-text"></div>
+        <button id="btn-fermer-coffre" style="width: 250px; font-size: 16px; display: none;" onclick="fermerCoffre()">CONTINUER</button>
+    </div>
+
+    <div id="reset-modal" class="chest-modal" style="z-index: 3000;">
+        <div class="banner-content" style="background-color: var(--side-panel-bg); border-color: var(--lose-color); animation: popInReward 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;">
+            <h2 style="color: var(--lose-color); letter-spacing: 2px; font-size: 24px; margin-top: 0;">ATTENTION</h2>
+            <p style="font-size: 14px; margin-bottom: 20px; text-align: center; color: var(--text-primary);">Voulez-vous vraiment effacer toute votre progression ?<br>Cette action est irréversible.</p>
+            <div style="display: flex; gap: 10px; width: 100%;">
+                <button class="btn-main" style="background-color: var(--btn-base); width: auto; flex: 1; padding: 10px;" onclick="fermerResetModal()">ANNULER</button>
+                <button class="btn-main" style="background-color: var(--lose-color); color: white; width: auto; flex: 1; padding: 10px;" onclick="confirmerReset()">RÉINITIALISER</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="anim-67" class="anim-67-overlay">
+        LUCKY 67!
+    </div>
+
+<script>
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'F11') { e.preventDefault(); }
+    });
+
+    const AVATARS = ['🧑‍🚀', '🧛‍♂️', '🥷', '🧟', '🦸‍♂️', '🦹‍♂️', '🧙‍♂️', '🧚', '🤖', '👽', '👻', '🤡'];
+    let avatarJoueur = AVATARS[0];
+
+    let modeJeu = 'solo';
+    let multiJoueurs = [];
+    let multiTourIndex = 0;
+
+    let solde = 1500;
+    let diamants = 0;
+    let mise = 0;
+    let derniereMise = 0;
+    let sabot = [];
+    let mainJoueur = [];
+    let mainCroupier = [];
+    let etape = 'mise'; 
+    let tourCroupierInterval = null;
+    let runningCount = 0;
+    let flagAllIn = false;
+    
+    let stats = { jouees: 0, gagnees: 0, meilleurScore: 1500 };
+    let xp = 0;
+    let niveau = 1;
+    let xpRequis = 100;
+    let serieVictoire = 0;
+    let nomJoueur = "JOUEUR 1";
+    let highestUnlockedTier = 0;
+
+    let cosmetiqueEquipe = 'classic';
+    let inventaire = { 'classic': true };
+    let wheelCosmos = [];
+    let hasardSpinCount = 0;
+
+    let defis = [
+        { id: 'q1', cat: 'quotidien', desc: 'Jouer 5 parties', obj: 5, prog: 0, rec: 500, type: 'jetons', xp: 50, done: false, claimed: false },
+        { id: 'q2', cat: 'quotidien', desc: 'Gagner 2 mains', obj: 2, prog: 0, rec: 1000, type: 'jetons', xp: 50, done: false, claimed: false },
+        { id: 'q3', cat: 'quotidien', desc: 'Jouer au Hasard', obj: 3, prog: 0, rec: 1, type: 'diamants', xp: 100, done: false, claimed: false },
+        { id: 'q4', cat: 'quotidien', desc: 'Miser 1000 jetons', obj: 1000, prog: 0, rec: 500, type: 'jetons', xp: 50, done: false, claimed: false },
+        { id: 'q5', cat: 'quotidien', desc: 'Doubler 2 fois', obj: 2, prog: 0, rec: 1000, type: 'jetons', xp: 100, done: false, claimed: false },
+        { id: 'q6', cat: 'quotidien', desc: 'Faire une égalité', obj: 1, prog: 0, rec: 1000, type: 'jetons', xp: 150, done: false, claimed: false },
+        
+        { id: 'h1', cat: 'hebdo', desc: 'Gagner 5000 jetons', obj: 5000, prog: 0, rec: 5000, type: 'jetons', xp: 500, done: false, claimed: false },
+        { id: 'h2', cat: 'hebdo', desc: 'Faire 5 Blackjacks', obj: 5, prog: 0, rec: 5, type: 'diamants', xp: 500, done: false, claimed: false },
+        { id: 'h3', cat: 'hebdo', desc: 'Ouvrir 3 Coffres', obj: 3, prog: 0, rec: 2000, type: 'jetons', xp: 300, done: false, claimed: false },
+        { id: 'h4', cat: 'hebdo', desc: 'Gagner 20 mains', obj: 20, prog: 0, rec: 5, type: 'diamants', xp: 600, done: false, claimed: false },
+        { id: 'h5', cat: 'hebdo', desc: 'Acheter 2 Cosmétiques', obj: 2, prog: 0, rec: 2000, type: 'jetons', xp: 400, done: false, claimed: false },
+        
+        { id: 's1', cat: 'saisonnier', desc: 'Atteindre le niveau 15', obj: 15, prog: 1, rec: 20, type: 'diamants', xp: 1000, done: false, claimed: false },
+        { id: 's2', cat: 'saisonnier', desc: 'Jouer 100 parties', obj: 100, prog: 0, rec: 10000, type: 'jetons', xp: 1500, done: false, claimed: false },
+        { id: 's3', cat: 'saisonnier', desc: 'Débloquer 10 cosmétiques', obj: 10, prog: 1, rec: 25, type: 'diamants', xp: 2000, done: false, claimed: false },
+        { id: 's4', cat: 'saisonnier', desc: 'Gagner 1 Jackpot (67)', obj: 1, prog: 0, rec: 50, type: 'diamants', xp: 5000, done: false, claimed: false },
+        { id: 's5', cat: 'saisonnier', desc: 'Gagner 50 mains', obj: 50, prog: 0, rec: 50000, type: 'jetons', xp: 3000, done: false, claimed: false }
+    ];
+    
+    const cosmeticsDB = [
+        { id: 'classic', nom: 'CLASSIQUE', bg: 'repeating-linear-gradient(45deg, #34495E, #34495E 15px, #2C3E50 15px, #2C3E50 30px)', emoji: '', jetons: 0, diamants: 0 },
+        { id: 'vert', nom: 'VERT FORÊT', bg: 'linear-gradient(0deg, transparent 24%, rgba(255,255,255,.3) 25%, rgba(255,255,255,.3) 26%, transparent 27%, transparent 74%, rgba(255,255,255,.3) 75%, rgba(255,255,255,.3) 76%, transparent 77%, transparent), linear-gradient(90deg, transparent 24%, rgba(255,255,255,.3) 25%, rgba(255,255,255,.3) 26%, transparent 27%, transparent 74%, rgba(255,255,255,.3) 75%, rgba(255,255,255,.3) 76%, transparent 77%, #27AE60)', emoji: '', jetons: 500, diamants: 0 },
+        { id: 'bleu', nom: 'BLEU OCÉAN', bg: 'repeating-linear-gradient(135deg, rgba(255,255,255,0.1), rgba(255,255,255,0.1) 10px, #2980B9 10px, #2980B9 20px)', emoji: '', jetons: 500, diamants: 0 },
+        { id: 'jaune', nom: 'JAUNE SOLEIL', bg: '#F1C40F', emoji: '', jetons: 500, diamants: 0 },
+        { id: 'orange', nom: 'ORANGE', bg: '#E67E22', emoji: '', jetons: 500, diamants: 0 },
+        { id: 'cyan', nom: 'CYAN', bg: '#00BCD4', emoji: '', jetons: 500, diamants: 0 },
+        { id: 'rose', nom: 'ROSE', bg: '#E91E63', emoji: '', jetons: 500, diamants: 0 },
+        { id: 'or', nom: 'OR ROYAL', bg: 'linear-gradient(45deg, #B5952F 25%, transparent 25%, transparent 75%, #B5952F 75%, #B5952F), linear-gradient(45deg, #B5952F 25%, transparent 25%, transparent 75%, #B5952F 75%, #D4AF37)', emoji: '', jetons: 3000, diamants: 0 },
+        { id: 'noir', nom: 'NOIR ÉBÈNE', bg: 'repeating-linear-gradient(0deg, transparent, transparent 10px, rgba(255,255,255,0.05) 10px, #111111 20px)', emoji: '', jetons: 3000, diamants: 0 },
+        { id: 'argent', nom: 'ARGENT', bg: 'linear-gradient(45deg, #BDC3C7, #ecf0f1)', emoji: '', jetons: 3000, diamants: 0 },
+        { id: 'bronze', nom: 'BRONZE', bg: 'linear-gradient(45deg, #cd7f32, #f5deb3)', emoji: '', jetons: 3000, diamants: 0 },
+        { id: 'diamant', nom: 'DIAMANT', bg: 'radial-gradient(#00BCD4 15%, transparent 16%), radial-gradient(#00BCD4 15%, #E0F7FA)', emoji: '', jetons: 10000, diamants: 0 },
+        { id: 'feu', nom: 'FEU', bg: 'linear-gradient(to top, #ff0000, #ffff00)', emoji: '', jetons: 15000, diamants: 0 },
+        { id: 'glace', nom: 'GLACE', bg: 'linear-gradient(to bottom, #00ffff, #0000ff)', emoji: '', jetons: 15000, diamants: 0 },
+        { id: 'ombre', nom: 'OMBRE', bg: 'radial-gradient(circle, #333, #000)', emoji: '', jetons: 20000, diamants: 0 },
+        { id: 'galaxie', nom: 'GALAXIE', bg: 'radial-gradient(white, rgba(255,255,255,.2) 2px, transparent 5px), radial-gradient(white, rgba(255,255,255,.15) 1px, #0B0B2A)', emoji: '', jetons: 25000, diamants: 0 },
+        { id: 'matrix', nom: 'MATRICE', bg: 'repeating-linear-gradient(0deg, rgba(0,255,0,0.1), rgba(0,255,0,0.1) 2px, transparent 2px, transparent 4px), linear-gradient(180deg, #001100, #000000)', emoji: '💻', jetons: 50000, diamants: 0 },
+        { id: 'thanos', nom: 'THANOS', bg: 'linear-gradient(45deg, #8E44AD, #D4AF37)', emoji: '💎', jetons: 0, diamants: 15 },
+        { id: 'vader', nom: 'DARK VADOR', bg: '#000000', emoji: '🌌', jetons: 0, diamants: 15 },
+        { id: '67', nom: 'ÉDITION 67', bg: 'linear-gradient(135deg, #111, #444)', emoji: '', jetons: 67000, diamants: 67, is67: true },
+        { id: 'spiderman', nom: 'SPIDER-MAN', bg: 'linear-gradient(135deg, #E23636 50%, #504CE2 50%)', emoji: '🕷️', jetons: 5000, diamants: 5 },
+        { id: 'ironman', nom: 'IRON MAN', bg: 'linear-gradient(135deg, #CC0000 50%, #FFCC00 50%)', emoji: '🤖', jetons: 5000, diamants: 5 },
+        { id: 'capamerica', nom: 'CAPTAIN AMERICA', bg: 'radial-gradient(circle, #FFFFFF 20%, #E23636 20%, #E23636 40%, #504CE2 40%)', emoji: '🛡️', jetons: 5000, diamants: 5 },
+        { id: 'hulk', nom: 'HULK', bg: 'linear-gradient(135deg, #4CAF50 60%, #8E44AD 40%)', emoji: '💥', jetons: 5000, diamants: 5 },
+        { id: 'thor', nom: 'THOR', bg: 'linear-gradient(to bottom, #7F8C8D, #2C3E50)', emoji: '⚡', jetons: 5000, diamants: 5 },
+        { id: 'blackpanther', nom: 'BLACK PANTHER', bg: '#000000', emoji: '🐾', jetons: 5000, diamants: 5 },
+        { id: 'wolverine', nom: 'WOLVERINE', bg: 'linear-gradient(135deg, #F1C40F 60%, #2980B9 40%)', emoji: '🐺', jetons: 5000, diamants: 5 },
+        { id: 'deadpool', nom: 'DEADPOOL', bg: 'linear-gradient(135deg, #C0392B 60%, #111111 40%)', emoji: '⚔️', jetons: 5000, diamants: 5 },
+        { id: 'venom', nom: 'VENOM', bg: '#111111', emoji: '👅', jetons: 5000, diamants: 5 },
+        { id: 'batman', nom: 'BATMAN', bg: 'linear-gradient(135deg, #111111 60%, #F1C40F 40%)', emoji: '🦇', jetons: 5000, diamants: 5 },
+        { id: 'superman', nom: 'SUPERMAN', bg: 'linear-gradient(135deg, #2980B9 50%, #E74C3C 50%)', emoji: '🦸‍♂️', jetons: 5000, diamants: 5 },
+        { id: 'wonderwoman', nom: 'WONDER WOMAN', bg: 'linear-gradient(135deg, #E74C3C 40%, #D4AF37 20%, #2980B9 40%)', emoji: '🌟', jetons: 5000, diamants: 5 },
+        { id: 'flash', nom: 'FLASH', bg: 'linear-gradient(to bottom, #E74C3C, #F1C40F)', emoji: '⚡', jetons: 5000, diamants: 5 },
+        { id: 'aquaman', nom: 'AQUAMAN', bg: 'linear-gradient(135deg, #E67E22 50%, #27AE60 50%)', emoji: '🔱', jetons: 5000, diamants: 5 },
+        { id: 'joker', nom: 'JOKER', bg: 'linear-gradient(135deg, #8E44AD 50%, #27AE60 50%)', emoji: '🃏', jetons: 5000, diamants: 5 },
+        { id: 'harley', nom: 'HARLEY QUINN', bg: 'linear-gradient(90deg, #E74C3C 50%, #2980B9 50%)', emoji: '♦️', jetons: 5000, diamants: 5 },
+        { id: 'greenlantern', nom: 'GREEN LANTERN', bg: 'linear-gradient(135deg, #27AE60, #111111)', emoji: '🟢', jetons: 5000, diamants: 5 },
+        { id: 'jedi', nom: 'ORDRE JEDI', bg: 'linear-gradient(to bottom, #ecf0f1, #BDC3C7)', emoji: '⚔️', jetons: 5000, diamants: 5 },
+        { id: 'sith', nom: 'SITH', bg: 'linear-gradient(to bottom, #000000, #C0392B)', emoji: '🔴', jetons: 5000, diamants: 5 },
+        { id: 'yoda', nom: 'YODA', bg: 'linear-gradient(135deg, #27AE60 50%, #8b4513 50%)', emoji: '🐸', jetons: 5000, diamants: 5 },
+        { id: 'mando', nom: 'MANDALORIEN', bg: 'linear-gradient(135deg, #BDC3C7 60%, #8b4513 40%)', emoji: '🛡️', jetons: 5000, diamants: 5 },
+        { id: 'boba', nom: 'BOBA FETT', bg: 'linear-gradient(135deg, #27AE60 40%, #C0392B 20%, #F1C40F 40%)', emoji: '🎯', jetons: 5000, diamants: 5 },
+        { id: 'stormtrooper', nom: 'STORMTROOPER', bg: '#FFFFFF', emoji: '⚪', jetons: 5000, diamants: 5 },
+        { id: 'goku', nom: 'GOKU', bg: 'linear-gradient(135deg, #E67E22 60%, #2980B9 40%)', emoji: '🐉', jetons: 5000, diamants: 5 },
+        { id: 'vegeta', nom: 'VEGETA', bg: 'linear-gradient(135deg, #2980B9 60%, #FFFFFF 40%)', emoji: '💥', jetons: 5000, diamants: 5 },
+        { id: 'naruto', nom: 'NARUTO', bg: 'linear-gradient(135deg, #E67E22 60%, #111111 40%)', emoji: '🦊', jetons: 5000, diamants: 5 },
+        { id: 'sasuke', nom: 'SASUKE', bg: 'linear-gradient(135deg, #111111 60%, #8E44AD 40%)', emoji: '🌪️', jetons: 5000, diamants: 5 },
+        { id: 'luffy', nom: 'LUFFY', bg: 'linear-gradient(135deg, #E74C3C 50%, #F1C40F 50%)', emoji: '👒', jetons: 5000, diamants: 5 },
+        { id: 'zoro', nom: 'ZORO', bg: 'linear-gradient(135deg, #27AE60 60%, #111111 40%)', emoji: '⚔️', jetons: 5000, diamants: 5 },
+        { id: 'ichigo', nom: 'ICHIGO', bg: 'linear-gradient(135deg, #111111 50%, #E67E22 50%)', emoji: '🗡️', jetons: 5000, diamants: 5 },
+        { id: 'saitama', nom: 'SAITAMA', bg: 'linear-gradient(135deg, #F1C40F 60%, #E74C3C 40%)', emoji: '👊', jetons: 5000, diamants: 5 },
+        { id: 'levi', nom: 'LIVAI', bg: 'linear-gradient(135deg, #27AE60 60%, #ecf0f1 40%)', emoji: '🗡️', jetons: 5000, diamants: 5 },
+        { id: 'eren', nom: 'EREN', bg: 'linear-gradient(135deg, #8b4513 50%, #27AE60 50%)', emoji: '🗝️', jetons: 5000, diamants: 5 },
+        { id: 'gon', nom: 'GON', bg: 'linear-gradient(135deg, #27AE60 50%, #E67E22 50%)', emoji: '🎣', jetons: 5000, diamants: 5 },
+        { id: 'killua', nom: 'KILLUA', bg: 'linear-gradient(135deg, #ecf0f1 50%, #8E44AD 50%)', emoji: '⚡', jetons: 5000, diamants: 5 },
+        { id: 'tanjiro', nom: 'TANJIRO', bg: 'repeating-linear-gradient(45deg, #27AE60, #27AE60 20px, #111111 20px, #111111 40px)', emoji: '🎴', jetons: 5000, diamants: 5 },
+        { id: 'zenitsu', nom: 'ZENITSU', bg: 'repeating-linear-gradient(45deg, #F1C40F, #F1C40F 20px, #E67E22 20px, #E67E22 40px)', emoji: '⚡', jetons: 5000, diamants: 5 },
+        { id: 'inosuke', nom: 'INOSUKE', bg: 'linear-gradient(to bottom, #8b4513, #2980B9)', emoji: '🐗', jetons: 5000, diamants: 5 },
+        { id: 'mario', nom: 'MARIO', bg: 'linear-gradient(135deg, #E74C3C 50%, #2980B9 50%)', emoji: '🍄', jetons: 5000, diamants: 5 },
+        { id: 'luigi', nom: 'LUIGI', bg: 'linear-gradient(135deg, #27AE60 50%, #2980B9 50%)', emoji: '👻', jetons: 5000, diamants: 5 },
+        { id: 'link', nom: 'LINK', bg: 'linear-gradient(135deg, #27AE60 60%, #8b4513 40%)', emoji: '🗡️', jetons: 5000, diamants: 5 },
+        { id: 'samus', nom: 'SAMUS', bg: 'linear-gradient(135deg, #E67E22 50%, #F1C40F 50%)', emoji: '🚀', jetons: 5000, diamants: 5 },
+        { id: 'kratos', nom: 'KRATOS', bg: 'linear-gradient(135deg, #ecf0f1 60%, #C0392B 40%)', emoji: '🪓', jetons: 5000, diamants: 5 },
+        { id: 'masterchief', nom: 'MASTER CHIEF', bg: 'linear-gradient(135deg, #27AE60 60%, #F1C40F 40%)', emoji: '🔫', jetons: 5000, diamants: 5 },
+        { id: 'sonic', nom: 'SONIC', bg: 'linear-gradient(135deg, #2980B9 60%, #E74C3C 40%)', emoji: '🦔', jetons: 5000, diamants: 5 },
+        { id: 'pikachu', nom: 'PIKACHU', bg: 'linear-gradient(135deg, #F1C40F 60%, #111111 40%)', emoji: '⚡', jetons: 5000, diamants: 5 },
+        { id: 'charizard', nom: 'DRACAUFEU', bg: 'linear-gradient(135deg, #E67E22 60%, #00BCD4 40%)', emoji: '🔥', jetons: 5000, diamants: 5 },
+        { id: 'steve', nom: 'MINECRAFT', bg: 'repeating-linear-gradient(0deg, #8b4513, #8b4513 10px, #27AE60 10px, #27AE60 20px)', emoji: '⛏️', jetons: 5000, diamants: 5 },
+        { id: 'doom', nom: 'DOOM', bg: 'linear-gradient(to bottom, #111111, #C0392B)', emoji: '💀', jetons: 5000, diamants: 5 },
+        { id: 'witcher', nom: 'THE WITCHER', bg: 'linear-gradient(135deg, #111111 60%, #ecf0f1 40%)', emoji: '🐺', jetons: 5000, diamants: 5 }
+    ];
+
+    cosmeticsDB.sort((a, b) => {
+        if (a.jetons === b.jetons) return a.diamants - b.diamants;
+        return a.jetons - b.jetons;
+    });
+
+    const itemsLvl1 = cosmeticsDB.filter(c => c.diamants === 0 && c.jetons > 0 && c.jetons <= 5000).map(c => c.id);
+    const itemsLvl2 = cosmeticsDB.filter(c => c.diamants === 0 && c.jetons > 5000 && c.jetons <= 20000).map(c => c.id);
+    const itemsLvl3 = cosmeticsDB.filter(c => c.diamants > 0 || c.jetons > 20000).map(c => c.id);
+
+    const battlePassRewards = [
+        { lvl: 1, type: 'jetons', val: 500 },
+        { lvl: 2, type: 'jetons', val: 1000 },
+        { lvl: 3, type: 'diamants', val: 1 },
+        { lvl: 4, type: 'jetons', val: 2000 },
+        { lvl: 5, type: 'cosmetique', val: 'rouge' },
+        { lvl: 6, type: 'jetons', val: 3000 },
+        { lvl: 7, type: 'diamants', val: 2 },
+        { lvl: 8, type: 'jetons', val: 4000 },
+        { lvl: 9, type: 'diamants', val: 3 },
+        { lvl: 10, type: 'cosmetique', val: 'mario' },
+        { lvl: 11, type: 'jetons', val: 5000 },
+        { lvl: 12, type: 'diamants', val: 5 },
+        { lvl: 13, type: 'jetons', val: 7500 },
+        { lvl: 14, type: 'diamants', val: 10 },
+        { lvl: 15, type: 'cosmetique', val: '67' }
+    ];
+
+    function chargerJeu() {
+        try {
+            let dataStr = localStorage.getItem('sauvegardeBlackjack67');
+            if (dataStr) {
+                let data = JSON.parse(dataStr);
+                solde = data.solde !== undefined ? data.solde : 1500;
+                diamants = data.diamants !== undefined ? data.diamants : 0;
+                xp = data.xp !== undefined ? data.xp : 0;
+                niveau = data.niveau !== undefined ? data.niveau : 1;
+                
+                xpRequis = 100;
+                for(let i = 1; i < niveau; i++) {
+                    xpRequis = Math.floor(xpRequis * 1.5);
+                }
+                
+                stats = data.stats || { jouees: 0, gagnees: 0, meilleurScore: 1500 };
+                inventaire = data.inventaire || { 'classic': true };
+                cosmetiqueEquipe = data.cosmetiqueEquipe || 'classic';
+                
+                if (data.defis && Array.isArray(data.defis) && data.defis.length === defis.length) {
+                    defis = data.defis;
+                }
+                
+                avatarJoueur = data.avatarJoueur || AVATARS[0];
+                nomJoueur = data.nomJoueur || "JOUEUR 1";
+                highestUnlockedTier = data.highestUnlockedTier || 0;
+                hasardSpinCount = data.hasardSpinCount || 0;
+                serieVictoire = data.serieVictoire || 0;
+            } else {
+                solde = 1500;
+                xpRequis = 100;
+            }
+        } catch (e) {
+            solde = 1500;
+            xpRequis = 100;
+        }
+    }
+
+    function sauvegarderJeu() {
+        if (modeJeu !== 'solo') return; 
+        try {
+            let data = {
+                solde: solde,
+                diamants: diamants,
+                xp: xp,
+                niveau: niveau,
+                stats: stats,
+                inventaire: inventaire,
+                cosmetiqueEquipe: cosmetiqueEquipe,
+                defis: defis,
+                avatarJoueur: avatarJoueur,
+                nomJoueur: nomJoueur,
+                highestUnlockedTier: highestUnlockedTier,
+                hasardSpinCount: hasardSpinCount,
+                serieVictoire: serieVictoire
+            };
+            localStorage.setItem('sauvegardeBlackjack67', JSON.stringify(data));
+        } catch (e) {}
+    }
+
+    function fermerResetModal() {
+        let modal = document.getElementById('reset-modal');
+        if (modal) modal.classList.remove('active');
+    }
+
+    function reinitialiserSauvegarde() {
+        let modal = document.getElementById('reset-modal');
+        if (modal) modal.classList.add('active');
+    }
+
+    function confirmerReset() {
+        try { localStorage.removeItem('sauvegardeBlackjack67'); } catch(e){}
+        location.reload();
+    }
+
+    function majDefisBadge() {
+        let hasClaimable = defis.some(d => d.done && !d.claimed);
+        let badge = document.getElementById('defis-badge');
+        if(badge) badge.style.display = hasClaimable ? 'flex' : 'none';
+    }
+
+    function genererDefis() {
+        let qs = document.getElementById('defis-quotidiens');
+        let hs = document.getElementById('defis-hebdos');
+        let ss = document.getElementById('defis-saisonniers');
+        if(!qs) return;
+        qs.innerHTML = ''; hs.innerHTML = ''; ss.innerHTML = '';
+        
+        defis.forEach(d => {
+            let perc = Math.min(100, (d.prog / d.obj) * 100);
+            let rewardText = d.type === 'jetons' ? d.rec + ' 🪙' : d.rec + ' 💎';
+            rewardText += ` & ${d.xp} XP`;
+            
+            let classList = 'defi-card';
+            if (d.done) classList += ' done';
+            if (d.claimed) classList += ' claimed';
+
+            let html = `
+                <div class="${classList}">
+                    <div class="defi-title">
+                        <span>${d.desc} <span class="done-icon">✔</span></span>
+                        <span class="defi-reward">${rewardText}</span>
+                    </div>
+                    <div class="level-bar" style="height: 6px;">
+                        <div class="level-fill" style="width: ${perc}%; background: ${d.done ? 'var(--win-color)' : 'var(--accent-color)'};"></div>
+                    </div>
+                    <div class="defi-progress-text">${d.prog} / ${d.obj}</div>
+                    <button class="btn-buy defi-claim-btn" style="background:var(--accent-color); color:black;" onclick="reclamerDefi('${d.id}', this)">RÉCLAMER</button>
+                </div>
+            `;
+            if (d.cat === 'quotidien') qs.innerHTML += html;
+            else if (d.cat === 'hebdo') hs.innerHTML += html;
+            else if (d.cat === 'saisonnier') ss.innerHTML += html;
+        });
+        majDefisBadge();
+    }
+
+    function progresserDefi(id, amount=1) {
+        if(modeJeu !== 'solo') return;
+        let d = defis.find(x => x.id === id);
+        if(d && !d.done) {
+            d.prog += amount;
+            if(d.prog >= d.obj) {
+                d.prog = d.obj;
+                d.done = true;
+                majDefisBadge();
+            }
+        }
+        genererDefis();
+        sauvegarderJeu();
+    }
+
+    function reclamerDefi(id, btnElement) {
+        let d = defis.find(x => x.id === id);
+        if(d && d.done && !d.claimed) {
+            d.claimed = true;
+            if(d.type === 'jetons') solde += d.rec;
+            else diamants += d.rec;
+            ajouterXP(d.xp);
+            syncSoldeGlobal();
+            
+            let card = btnElement.parentElement;
+            card.classList.add('defi-claim-anim');
+            
+            setTimeout(() => {
+                genererDefis();
+            }, 600);
+        }
+    }
+
+    function initAvatars() {
+        let container = document.getElementById('solo-avatar-selector');
+        if(!container) return;
+        container.innerHTML = '';
+        AVATARS.forEach(a => {
+            let div = document.createElement('div');
+            div.className = 'avatar-btn';
+            div.innerText = a;
+            if(a === avatarJoueur) div.classList.add('active');
+            div.onclick = () => {
+                avatarJoueur = a;
+                document.querySelectorAll('.avatar-btn').forEach(btn => btn.classList.remove('active'));
+                div.classList.add('active');
+                majNom(nomJoueur);
+                sauvegarderJeu(); 
+            };
+            container.appendChild(div);
+        });
+    }
+
+    function changerTheme(themeName, btnElement) {
+        let root = document.documentElement;
+        if(themeName === 'dark') {
+            root.style.setProperty('--bg-color', '#1A2530');
+            root.style.setProperty('--side-panel-bg', '#121A22');
+            root.style.setProperty('--top-nav-bg', '#0D131A');
+            root.style.setProperty('--menu-grad-1', '#1A2530');
+            root.style.setProperty('--menu-grad-2', '#0B131A');
+            root.style.setProperty('--menu-grad-3', '#1E2B38');
+            root.style.setProperty('--menu-grad-4', '#121A22');
+        } else if(themeName === 'casino') {
+            root.style.setProperty('--bg-color', '#0f380f');
+            root.style.setProperty('--side-panel-bg', '#0a240a');
+            root.style.setProperty('--top-nav-bg', '#051205');
+            root.style.setProperty('--menu-grad-1', '#0f380f');
+            root.style.setProperty('--menu-grad-2', '#0a240a');
+            root.style.setProperty('--menu-grad-3', '#144a14');
+            root.style.setProperty('--menu-grad-4', '#051205');
+        } else if (themeName === 'royal') {
+            root.style.setProperty('--bg-color', '#2b0f38');
+            root.style.setProperty('--side-panel-bg', '#1c0a24');
+            root.style.setProperty('--top-nav-bg', '#0e0512');
+            root.style.setProperty('--menu-grad-1', '#2b0f38');
+            root.style.setProperty('--menu-grad-2', '#1c0a24');
+            root.style.setProperty('--menu-grad-3', '#3a144a');
+            root.style.setProperty('--menu-grad-4', '#0e0512');
+        } else if (themeName === 'ocean') {
+            root.style.setProperty('--bg-color', '#0f2438');
+            root.style.setProperty('--side-panel-bg', '#0a1724');
+            root.style.setProperty('--top-nav-bg', '#050b12');
+            root.style.setProperty('--menu-grad-1', '#0f2438');
+            root.style.setProperty('--menu-grad-2', '#0a1724');
+            root.style.setProperty('--menu-grad-3', '#14304a');
+            root.style.setProperty('--menu-grad-4', '#050b12');
+        } else if (themeName === 'crimson') {
+            root.style.setProperty('--bg-color', '#380f0f');
+            root.style.setProperty('--side-panel-bg', '#240a0a');
+            root.style.setProperty('--top-nav-bg', '#120505');
+            root.style.setProperty('--menu-grad-1', '#380f0f');
+            root.style.setProperty('--menu-grad-2', '#240a0a');
+            root.style.setProperty('--menu-grad-3', '#4a1414');
+            root.style.setProperty('--menu-grad-4', '#120505');
+        }
+        
+        document.querySelectorAll('#theme-picker .color-btn').forEach(btn => btn.classList.remove('active'));
+        btnElement.classList.add('active');
+    }
+
+    function divStyle(el, displayVal) {
+        let e = document.getElementById(el);
+        if(e) e.style.display = displayVal;
+    }
+
+    function lancerSolo() {
+        modeJeu = 'solo';
+        divStyle('stat-hilo-container', 'flex');
+        divStyle('solo-stats', 'block');
+        divStyle('multi-stats', 'none');
+        divStyle('solo-zone', 'flex');
+        divStyle('multi-zone', 'none');
+        
+        divStyle('tab-shop', 'flex');
+        divStyle('tab-spin', 'flex');
+        divStyle('tab-profil', 'flex');
+        divStyle('tab-pass', 'flex');
+        divStyle('tab-defis', 'flex');
+        
+        divStyle('nav-solde-global', 'flex');
+        divStyle('nav-multi-avatars', 'none');
+        divStyle('nav-avatar', 'inline');
+
+        changerEcran('game-screen');
+        preparerNouvelleManche();
+        majNom(nomJoueur);
+        genererDefis();
+    }
+
+    function afficherMultiSetup() {
+        changerEcran('multi-setup-screen');
+        document.getElementById('multi-names-container').innerHTML = '';
+        divStyle('btn-start-multi', 'none');
+        document.querySelectorAll('.setup-btn').forEach(btn => btn.classList.remove('active'));
+    }
+
+    function setMultiPlayers(n) {
+        document.querySelectorAll('.setup-btn').forEach(btn => btn.classList.remove('active'));
+        document.getElementById('btn-p' + n).classList.add('active');
+        let html = '';
+        for(let i=0; i<n; i++) {
+            html += `<div style="display:flex; gap:10px; align-items:center; width:100%;">
+                <select id="multi-avatar-${i}" class="profil-input" style="width:70px; font-size:24px; padding:5px;">
+                    ${AVATARS.map(a => `<option value="${a}">${a}</option>`).join('')}
+                </select>
+                <input type="text" id="multi-name-${i}" class="profil-input" placeholder="Joueur ${i+1}" value="Joueur ${i+1}" style="flex:1; text-align:center; font-weight:bold;">
+            </div>`;
+        }
+        document.getElementById('multi-names-container').innerHTML = html;
+        divStyle('btn-start-multi', 'block');
+    }
+
+    function demarrerMulti() {
+        modeJeu = 'multi';
+        multiJoueurs = [];
+        const inputs = document.querySelectorAll('#multi-names-container input');
+        const selects = document.querySelectorAll('#multi-names-container select');
+        
+        let avatarsHtml = '';
+        
+        inputs.forEach((input, i) => {
+            multiJoueurs.push({
+                nom: input.value || 'Joueur',
+                avatar: selects[i].value,
+                solde: 1500,
+                mise: 0,
+                main: [],
+                etat: 'attente',
+                score: 0
+            });
+            avatarsHtml += `<span style="font-size: 20px;" title="${input.value || 'Joueur'}">${selects[i].value}</span>`;
+        });
+        
+        divStyle('stat-hilo-container', 'none');
+        divStyle('solo-stats', 'none');
+        divStyle('multi-stats', 'block');
+        divStyle('solo-zone', 'none');
+        divStyle('multi-zone', 'flex');
+        divStyle('display-nom', 'flex');
+        
+        divStyle('tab-shop', 'none');
+        divStyle('tab-spin', 'none');
+        divStyle('tab-profil', 'none');
+        divStyle('tab-pass', 'none');
+        divStyle('tab-defis', 'none');
+        
+        divStyle('nav-avatar', 'none');
+        divStyle('nav-solde-global', 'none');
+        divStyle('nav-multi-avatars', 'flex');
+        
+        document.getElementById('nav-multi-avatars').innerHTML = avatarsHtml;
+        
+        changerEcran('game-screen');
+        preparerNouvelleManche();
+    }
+
+    function genererBoutique() {
+        const grid = document.getElementById('shop-cards-grid');
+        if(!grid) return;
+        grid.innerHTML = '';
+        cosmeticsDB.forEach(item => {
+            let prixText = "";
+            if (item.diamants > 0 && item.jetons > 0) prixText = `${item.jetons} 🪙 + ${item.diamants} 💎`;
+            else if (item.diamants > 0) prixText = `${item.diamants} 💎`;
+            else if (item.jetons > 0) prixText = `${item.jetons} 🪙`;
+            else prixText = "GRATUIT";
+
+            let btnText = prixText;
+            let btnDisabled = "";
+            let btnStyle = "";
+
+            if (inventaire[item.id]) {
+                btnText = 'POSSÉDÉ';
+                btnDisabled = "disabled";
+                btnStyle = "color: var(--win-color); border-color: var(--win-color); opacity: 0.8;";
+            } else {
+                if (solde < item.jetons || diamants < item.diamants) {
+                    btnDisabled = "disabled";
+                }
+            }
+
+            let extraClass = item.is67 ? "card-back-67" : "card-back-custom";
+
+            const div = document.createElement('div');
+            div.className = 'item-card';
+            div.innerHTML = `
+                <h3>${item.nom}</h3>
+                <div class="shop-preview ${extraClass}" style="background: ${item.bg}; font-size: 40px; display: flex; align-items: center; justify-content: center; border: 2px solid rgba(255,255,255,0.2); border-radius:10px;">${item.emoji}</div>
+                <button class="btn-buy" id="btn-shop-${item.id}" onclick="acheterCosmetique('${item.id}')" ${btnDisabled} style="${btnStyle}">${btnText}</button>
+            `;
+            grid.appendChild(div);
+        });
+    }
+
+    function genererCasier() {
+        const grid = document.getElementById('casier-grid');
+        if(!grid) return;
+        grid.innerHTML = '';
+        
+        let itemsPossedes = cosmeticsDB.filter(item => inventaire[item.id]);
+        let count = itemsPossedes.length;
+        let flexBasis = count === 1 ? '100%' : count === 2 ? '45%' : count <= 4 ? '30%' : '20%';
+        let maxW = count === 1 ? '300px' : count === 2 ? '250px' : count <= 4 ? '200px' : '150px';
+
+        itemsPossedes.forEach(item => {
+            let isActive = cosmetiqueEquipe === item.id;
+            let classActive = isActive ? 'active' : '';
+            let extraClass = item.is67 ? "card-back-67" : "card-back-custom";
+
+            const div = document.createElement('div');
+            div.className = `casier-item ${classActive}`;
+            div.style.flex = `1 1 ${flexBasis}`;
+            div.style.maxWidth = maxW;
+            div.onclick = () => equiperCosmetique(item.id);
+            div.innerHTML = `
+                <div class="equipped-badge">ÉQUIPÉ</div>
+                <div class="casier-item-preview ${extraClass}" style="background: ${item.bg};">${item.emoji}</div>
+                <div class="casier-item-name">${item.nom}</div>
+            `;
+            grid.appendChild(div);
+        });
+    }
+
+    function verifierPassBadge() {
+        let hasClaimable = false;
+        battlePassRewards.forEach(r => {
+            let isUnlocked = niveau > r.lvl || (niveau === r.lvl && (xp/xpRequis) >= 1);
+            if (highestUnlockedTier >= r.lvl) isUnlocked = true;
+            if (isUnlocked && !inventaire[`pass_tier_${r.lvl}`]) hasClaimable = true;
+        });
+        let badge = document.getElementById('pass-badge');
+        if(badge) badge.style.display = hasClaimable ? 'flex' : 'none';
+    }
+
+    function genererPass() {
+        const container = document.getElementById('pass-tiers-container');
+        if(!container) return;
+        container.innerHTML = '';
+        
+        battlePassRewards.forEach((r, idx) => {
+            let isUnlocked = niveau > r.lvl || (niveau === r.lvl && (xp/xpRequis) >= 1);
+            if (highestUnlockedTier >= r.lvl) isUnlocked = true;
+
+            let icon = '';
+            let text = '';
+            if (r.type === 'jetons') { icon = '🪙'; text = `${r.val} JETONS`; }
+            else if (r.type === 'diamants') { icon = '💎'; text = `${r.val} DIAMANTS`; }
+            else if (r.type === 'cosmetique') { 
+                let c = cosmeticsDB.find(x => x.id === r.val);
+                icon = c ? `<div class="shop-preview ${c.is67 ? 'card-back-67' : 'card-back-custom'}" style="background:${c.bg}; width:45px !important; height:65px !important; font-size:18px !important; margin:0 auto; border: 2px solid rgba(255,255,255,0.2); border-radius:5px; display:flex; align-items:center; justify-content:center;">${c.emoji}</div>` : '🎁';
+                text = c ? `DOS : ${c.nom}` : 'COSMÉTIQUE';
+            }
+
+            let btnHtml = '';
+            let lockState = '';
+            if (isUnlocked) {
+                if (inventaire[`pass_tier_${r.lvl}`]) {
+                    lockState = 'claimed';
+                    btnHtml = `<span style="color: var(--win-color); font-weight: bold; margin-top: 10px;">RÉCUPÉRÉ</span>`;
+                } else {
+                    lockState = 'unlocked';
+                    btnHtml = `<button class="btn-buy" style="margin-top: 10px; font-size:12px!important; padding:10px; background:var(--accent-color); color:black;" onclick="reclamerPassReward(${r.lvl})">RÉCLAMER</button>`;
+                }
+            } else {
+                btnHtml = `<span style="color: var(--text-secondary); font-size: 12px; margin-top: 10px;">NIV ${r.lvl} REQUIS</span>`;
+            }
+
+            let div = document.createElement('div');
+            div.className = `brawl-pass-tier ${lockState}`;
+            div.innerHTML = `
+                <div class="brawl-tier-num">${r.lvl}</div>
+                <div class="brawl-icon-container">${icon}</div>
+                <div class="brawl-reward-text">${text}</div>
+                <div style="width:100%; display:flex; justify-content:center;">${btnHtml}</div>
+            `;
+            container.appendChild(div);
+        });
+        verifierPassBadge();
+    }
+
+    function reclamerPassReward(lvl) {
+        if(inventaire[`pass_tier_${lvl}`]) return;
+        let r = battlePassRewards.find(x => x.lvl === lvl);
+        if(!r) return;
+
+        if (r.type === 'jetons') solde += r.val;
+        else if (r.type === 'diamants') diamants += r.val;
+        else if (r.type === 'cosmetique') inventaire[r.val] = true;
+
+        inventaire[`pass_tier_${lvl}`] = true;
+        syncSoldeGlobal();
+        genererBoutique();
+        genererCasier();
+        genererPass();
+    }
+
+    function majRoueCosmetiques(force = false) {
+        if (!force && wheelCosmos.length === 3 && hasardSpinCount % 10 !== 0) {
+            let w1 = document.getElementById('wheel-cosmo-1');
+            let w2 = document.getElementById('wheel-cosmo-2');
+            let w3 = document.getElementById('wheel-cosmo-3');
+            if(w1) w1.innerText = cosmeticsDB.find(x => x.id === wheelCosmos[0])?.emoji || '🪙';
+            if(w2) w2.innerText = cosmeticsDB.find(x => x.id === wheelCosmos[1])?.emoji || '🪙';
+            if(w3) w3.innerText = cosmeticsDB.find(x => x.id === wheelCosmos[2])?.emoji || '🪙';
+            return;
+        }
+
+        let nonPossedes = cosmeticsDB.filter(c => !inventaire[c.id]);
+        let getRandomCosmetic = () => {
+            if(nonPossedes.length > 0) return nonPossedes[Math.floor(Math.random() * nonPossedes.length)];
+            return { id: 'doublon', emoji: '🪙', nom: 'DOUBLON' };
+        };
+        let c1 = getRandomCosmetic();
+        let c2 = getRandomCosmetic();
+        let c3 = getRandomCosmetic();
+        
+        let w1 = document.getElementById('wheel-cosmo-1');
+        let w2 = document.getElementById('wheel-cosmo-2');
+        let w3 = document.getElementById('wheel-cosmo-3');
+        if(w1) w1.innerText = c1.emoji;
+        if(w2) w2.innerText = c2.emoji;
+        if(w3) w3.innerText = c3.emoji;
+        
+        wheelCosmos = [c1.id, c2.id, c3.id];
+    }
+
+    function changerEcran(ecranId) {
+        if (etape === 'jeu' || isSpinning) return;
+        if (etape === 'mise' && mise > 0) annulerMise();
+        
+        if (modeJeu === 'multi' && (ecranId === 'shop-screen' || ecranId === 'spin-screen' || ecranId === 'profil-screen' || ecranId === 'pass-screen' || ecranId === 'defis-screen')) {
+            return;
+        }
+        
+        document.querySelectorAll('.screen').forEach(el => el.classList.remove('active'));
+        let target = document.getElementById(ecranId);
+        if(target) target.classList.add('active');
+        
+        let topNav = document.getElementById('top-nav');
+        if(topNav) {
+            if(ecranId === 'menu-screen' || ecranId === 'multi-setup-screen') {
+                topNav.style.display = 'none';
+            } else {
+                topNav.style.display = 'flex';
+            }
+        }
+
+        document.querySelectorAll('.nav-tab').forEach(tab => tab.classList.remove('active'));
+        let targetTab = document.getElementById('tab-' + ecranId.split('-')[0]);
+        if(targetTab) targetTab.classList.add('active');
+        
+        if (ecranId === 'shop-screen') genererBoutique();
+        if (ecranId === 'profil-screen') genererCasier();
+        if (ecranId === 'defis-screen') genererDefis();
+        if (ecranId === 'pass-screen') genererPass();
+        if (ecranId === 'game-screen') majAffichageMise();
+        if (ecranId === 'spin-screen') {
+            majRoueCosmetiques();
+            verifierSpinBtn();
+        }
+    }
+
+    function changerCouleur(couleur, btnElement) {
+        document.documentElement.style.setProperty('--accent-color', couleur);
+        document.querySelectorAll('.color-btn').forEach(btn => btn.classList.remove('active'));
+        btnElement.classList.add('active');
+        genererDefis();
+    }
+
+    function majNom(nouveauNom) {
+        nomJoueur = nouveauNom || "JOUEUR 1";
+        let navAvatar = document.getElementById('nav-avatar');
+        if(navAvatar) navAvatar.innerText = avatarJoueur;
+    }
+
+    function syncSoldeGlobal() {
+        document.querySelectorAll('.display-solde').forEach(el => {
+            if (modeJeu === 'multi' && el.id === 'hud-solde') return;
+            if(el) {
+                el.innerText = solde;
+                el.style.color = solde < 0 ? '#E74C3C' : 'inherit';
+            }
+        });
+        document.querySelectorAll('.display-diamants').forEach(el => { if(el) el.innerText = diamants; });
+        if(solde > stats.meilleurScore) {
+            stats.meilleurScore = solde;
+            let statBest = document.getElementById('stat-best');
+            if(statBest) statBest.innerText = stats.meilleurScore;
+        }
+        
+        safeDisable('btn-coffre-1', solde < 1500);
+        safeDisable('btn-coffre-2', solde < 5000);
+        safeDisable('btn-coffre-3', solde < 15000);
+        
+        sauvegarderJeu();
+    }
+
+    function ajouterXP(montant) {
+        if (montant > 0) {
+            xp += montant;
+            while(xp >= xpRequis) {
+                xp -= xpRequis;
+                niveau++;
+                xpRequis = Math.floor(xpRequis * 1.5);
+                progresserDefi('s1', 1);
+            }
+            highestUnlockedTier = Math.max(highestUnlockedTier, niveau);
+        }
+        
+        let pNiv = document.getElementById('profil-niv');
+        if(pNiv) pNiv.innerText = niveau;
+        let hNiv = document.getElementById('hud-niv');
+        if(hNiv) hNiv.innerText = niveau;
+        let passNiv = document.getElementById('pass-hud-niv');
+        if(passNiv) passNiv.innerText = niveau;
+
+        let hXp = document.getElementById('hud-xp');
+        if(hXp) hXp.innerText = Math.floor(xp) + '/' + xpRequis + ' XP';
+        let hXpFill = document.getElementById('hud-xp-fill');
+        let perc = Math.min(100, (xp / xpRequis) * 100) + '%';
+        if(hXpFill) hXpFill.style.width = perc;
+
+        let passXp = document.getElementById('pass-hud-xp');
+        if(passXp) passXp.innerText = Math.floor(xp) + '/' + xpRequis + ' XP';
+        let passXpFill = document.getElementById('pass-hud-xp-fill');
+        if(passXpFill) passXpFill.style.width = perc;
+
+        if (montant > 0) {
+            genererPass();
+            sauvegarderJeu();
+        } else {
+            verifierPassBadge();
+        }
+    }
+
+    function acheterCosmetique(id) {
+        if (solde < 0) return;
+        let item = cosmeticsDB.find(c => c.id === id);
+        if(!item) return;
+        if (!inventaire[id] && solde >= item.jetons && diamants >= item.diamants) {
+            solde -= item.jetons;
+            diamants -= item.diamants;
+            inventaire[id] = true;
+            equiperCosmetique(id);
+            progresserDefi('h5', 1);
+        }
+    }
+
+    function equiperCosmetique(id) {
+        if (inventaire[id]) {
+            cosmetiqueEquipe = id;
+            genererBoutique();
+            genererCasier();
+            syncSoldeGlobal();
+        }
+    }
+
+    function acheterCoffre(lvl, prix) {
+        if (solde >= prix) { 
+            solde -= prix; syncSoldeGlobal(); genererBoutique(); ouvrirCoffre(lvl);
+        }
+    }
+
+    function afficherRecompenseCosmetique(gainVal, showChestAnim = false) {
+        let gainItem = cosmeticsDB.find(c => c.id === gainVal);
+        let modal = document.getElementById('chest-modal');
+        let rewardText = document.getElementById('chest-reward-text');
+        let chestAnim = document.getElementById('chest-anim-box');
+        let btnContinue = document.getElementById('btn-fermer-coffre');
+        
+        btnContinue.style.display = 'block';
+        modal.classList.add('active');
+        
+        let extraClass = gainItem.is67 ? "card-back-67" : "card-back-custom";
+        chestAnim.className = 'chest-anim';
+        chestAnim.innerHTML = `<div class="shop-preview chest-reward-card ${extraClass}" style="background: ${gainItem.bg}; font-size: 40px; display: flex; align-items: center; justify-content: center; border: 2px solid rgba(255,255,255,0.2); border-radius:10px; margin:0;">${gainItem.emoji}</div>`;
+        rewardText.innerText = "NOUVEAU DOS : " + gainItem.nom;
+    }
+
+    function animerResultatHasard(msgElement, texte) {
+        if(!msgElement) return;
+        msgElement.classList.remove('spin-result-anim');
+        void msgElement.offsetWidth;
+        msgElement.innerText = texte;
+        msgElement.classList.add('spin-result-anim');
+    }
+
+    function donnerRecompenseHasard(gainType, gainVal, msgElement) {
+        if(gainType === 'jetons') {
+            solde += gainVal;
+            animerResultatHasard(msgElement, '+' + gainVal + ' 🪙');
+            progresserDefi('h1', gainVal);
+        } else if(gainType === 'diamants') {
+            diamants += gainVal;
+            animerResultatHasard(msgElement, '+' + gainVal + ' 💎');
+        } else if(gainType === 'cosmetique') {
+            if(!inventaire[gainVal] && gainVal !== 'doublon') {
+                inventaire[gainVal] = true;
+                let cInfo = cosmeticsDB.find(c => c.id === gainVal);
+                animerResultatHasard(msgElement, cInfo.nom + ' DÉBLOQUÉ!');
+                genererBoutique();
+                genererCasier();
+                progresserDefi('s3', 1);
+                setTimeout(() => { afficherRecompenseCosmetique(gainVal); }, 500);
+            } else {
+                solde += 500; 
+                animerResultatHasard(msgElement, 'DOUBLON! +500 🪙');
+            }
+        }
+        syncSoldeGlobal(); 
+    }
+
+    function ouvrirCoffre(lvl) {
+        progresserDefi('h3', 1);
+        let pool = lvl === 1 ? itemsLvl1 : lvl === 2 ? itemsLvl2 : itemsLvl3;
+        let nonPossedes = pool.filter(i => !inventaire[i]);
+        let modal = document.getElementById('chest-modal');
+        let rewardText = document.getElementById('chest-reward-text');
+        let chestAnim = document.getElementById('chest-anim-box');
+        let btnContinue = document.getElementById('btn-fermer-coffre');
+        
+        btnContinue.style.display = 'none';
+        rewardText.innerText = '';
+        chestAnim.className = 'chest-anim opening';
+        chestAnim.innerHTML = '📦';
+        
+        if (modal) modal.classList.add('active');
+
+        setTimeout(() => {
+            chestAnim.className = 'chest-anim';
+            chestAnim.innerHTML = '🎁';
+        }, 1000);
+
+        setTimeout(() => {
+            if (nonPossedes.length > 0) {
+                let gainId = nonPossedes[Math.floor(Math.random() * nonPossedes.length)];
+                let gainItem = cosmeticsDB.find(c => c.id === gainId);
+                inventaire[gainId] = true;
+                progresserDefi('s3', 1);
+                
+                let extraClass = gainItem.is67 ? "card-back-67" : "card-back-custom";
+                chestAnim.innerHTML = `<div class="shop-preview chest-reward-card ${extraClass}" style="background: ${gainItem.bg}; font-size: 40px; display: flex; align-items: center; justify-content: center; border: 2px solid rgba(255,255,255,0.2); border-radius:10px; margin:0;">${gainItem.emoji}</div>`;
+                
+                if (rewardText) rewardText.innerText = "NOUVEAU DOS : " + gainItem.nom;
+            } else {
+                let jetonsRemboursement = lvl * 1000;
+                solde += jetonsRemboursement;
+                syncSoldeGlobal();
+                chestAnim.innerHTML = `<div class="chest-reward-card" style="font-size: 80px;">🪙</div>`;
+                if (rewardText) rewardText.innerText = "DOUBLON ! +" + jetonsRemboursement + " 🪙";
+            }
+            btnContinue.style.display = 'block';
+            sauvegarderJeu();
+        }, 1500);
+    }
+
+    function fermerCoffre() { 
+        let modal = document.getElementById('chest-modal');
+        let chestAnim = document.getElementById('chest-anim-box');
+        if (modal) modal.classList.remove('active'); 
+        if (chestAnim) {
+            chestAnim.className = 'chest-anim';
+            chestAnim.innerHTML = '📦';
+        }
+        genererBoutique(); 
+        genererCasier();
+        majRoueCosmetiques();
+    }
+
+    function majSerieVictoire(gagne) {
+        if(gagne) {
+            serieVictoire++;
+            if(serieVictoire === 3) { setTimeout(()=>ouvrirCoffre(1), 1000); }
+            if(serieVictoire === 6) { setTimeout(()=>ouvrirCoffre(2), 1000); }
+            if(serieVictoire === 9) { setTimeout(()=>ouvrirCoffre(3), 1000); serieVictoire = 0; }
+        } else if (gagne === false) {
+            serieVictoire = 0;
+        }
+        
+        for(let i=1; i<=9; i++) {
+            let dot = document.getElementById('dot-'+i);
+            if (dot) {
+                if (i <= serieVictoire) dot.classList.add('active');
+                else dot.classList.remove('active');
+            }
+        }
+        sauvegarderJeu();
+    }
+
+    let isSpinning = false; let wheelRotation = 0;
+    function verifierSpinBtn() {
+        syncSoldeGlobal(); 
+        let btnSpin = document.getElementById('btn-spin'); 
+        if (btnSpin) btnSpin.disabled = solde < 200 || isSpinning; 
+        let btnSlot = document.getElementById('btn-slot');
+        if (btnSlot) btnSlot.disabled = solde < 200 || isSpinning;
+    }
+
+    function triggerLucky67() {
+        let anim67 = document.getElementById('anim-67');
+        if(anim67) {
+            anim67.classList.add('active');
+            setTimeout(() => anim67.classList.remove('active'), 3000);
+        }
+    }
+    
+    function obtenirResultatHasard() {
+        const r = Math.random() * 100;
+        if (r < 0.1) return { targetSlice: 0, gainType: 'jackpot', gainVal: 6700 };
+        if (r < 30) return { targetSlice: 1, gainType: 'jetons', gainVal: 100 };
+        if (r < 35) return { targetSlice: 2, gainType: 'cosmetique', gainVal: wheelCosmos[0] };
+        if (r < 50) return { targetSlice: 3, gainType: 'jetons', gainVal: 500 };
+        if (r < 55) return { targetSlice: 4, gainType: 'diamants', gainVal: 1 };
+        if (r < 60) return { targetSlice: 5, gainType: 'cosmetique', gainVal: wheelCosmos[1] };
+        if (r < 75) return { targetSlice: 6, gainType: 'jetons', gainVal: 1000 };
+        if (r < 80) return { targetSlice: 7, gainType: 'diamants', gainVal: 2 };
+        if (r < 85) return { targetSlice: 8, gainType: 'cosmetique', gainVal: wheelCosmos[2] };
+        if (r < 95) return { targetSlice: 9, gainType: 'jetons', gainVal: 2500 };
+        if (r < 98) return { targetSlice: 10, gainType: 'diamants', gainVal: 5 };
+        return { targetSlice: 11, gainType: 'jetons', gainVal: 5000 };
+    }
+
+    function lancerSpin() {
+        if (isSpinning || solde < 200) return;
+        solde -= 200; verifierSpinBtn(); isSpinning = true; 
+        progresserDefi('q3', 1);
+        
+        let spinMsg = document.getElementById('spin-msg');
+        if (spinMsg) {
+            spinMsg.classList.remove('spin-result-anim');
+            spinMsg.innerText = '...';
+        }
+        
+        const res = obtenirResultatHasard();
+        const targetSlice = res.targetSlice;
+        
+        const sliceAngle = 360 / 12; 
+        const targetAngle = 360 - (targetSlice * sliceAngle + (sliceAngle / 2));
+        
+        wheelRotation += 1800; const currentMod = wheelRotation % 360; wheelRotation += (targetAngle - currentMod);
+        
+        let wheel = document.getElementById('wheel');
+        if (wheel) wheel.style.transform = 'rotate(' + wheelRotation + 'deg)';
+
+        setTimeout(() => {
+            if(res.gainVal === 6700) { triggerLucky67(); progresserDefi('s4', 1); }
+
+            donnerRecompenseHasard(res.gainType, res.gainVal, spinMsg);
+            
+            hasardSpinCount++;
+            if(hasardSpinCount >= 10) {
+                hasardSpinCount = 0;
+                majRoueCosmetiques(true);
+            } else {
+                majRoueCosmetiques(false);
+            }
+            
+            isSpinning = false; verifierSpinBtn();
+            sauvegarderJeu();
+        }, 4100); 
+    }
+
+    function symbolePourGain(gainType, gainVal) {
+        if (gainType === 'jetons') {
+            if (gainVal === 6700) return '6️⃣7️⃣';
+            return '🪙';
+        }
+        if (gainType === 'diamants') return '💎';
+        if (gainType === 'cosmetique') {
+            let c = cosmeticsDB.find(x => x.id === gainVal);
+            return c ? c.emoji : '🎁';
+        }
+        return '❌';
+    }
+
+    const TOUT_SYMBOLES = ['🪙', '💎', '6️⃣7️⃣', '❌', '❌', '❌'];
+
+    function lancerSlot() {
+        if(isSpinning || solde < 200) return;
+        solde -= 200;
+        isSpinning = true;
+        verifierSpinBtn();
+        syncSoldeGlobal();
+        progresserDefi('q3', 1);
+
+        let lever = document.getElementById('slot-lever');
+        lever.classList.add('pulled');
+        setTimeout(() => lever.classList.remove('pulled'), 300);
+
+        let reels = [document.getElementById('reel-1'), document.getElementById('reel-2'), document.getElementById('reel-3')];
+        let slotMsg = document.getElementById('slot-msg');
+        if (slotMsg) {
+            slotMsg.classList.remove('spin-result-anim');
+            slotMsg.innerText = '...';
+        }
+
+        const res = obtenirResultatHasard();
+        const sym = symbolePourGain(res.gainType, res.gainVal);
+        
+        let dynamicSymbols = ['🪙', '💎', '6️⃣7️⃣', '❌'];
+        wheelCosmos.forEach(id => {
+            let c = cosmeticsDB.find(x => x.id === id);
+            if(c) dynamicSymbols.push(c.emoji);
+        });
+
+        reels.forEach(r => r.classList.add('spinning'));
+
+        let animTime = 0;
+        let animInterval = setInterval(() => {
+            reels.forEach(r => r.innerText = dynamicSymbols[Math.floor(Math.random() * dynamicSymbols.length)]);
+            animTime += 50;
+            if(animTime > 2000) {
+                clearInterval(animInterval);
+
+                let r1, r2, r3;
+                if (res.gainType === 'jetons' && res.gainVal !== 6700 && res.gainVal > 0) {
+                    r1 = '🪙'; r2 = '🪙'; r3 = '🪙';
+                } else if (res.gainType === 'diamants') {
+                    r1 = '💎'; r2 = '💎'; r3 = '💎';
+                } else if (res.gainVal === 6700) {
+                    r1 = '6️⃣7️⃣'; r2 = '6️⃣7️⃣'; r3 = '6️⃣7️⃣';
+                } else if (res.gainType === 'cosmetique') {
+                    r1 = sym; r2 = sym; r3 = sym;
+                } else {
+                    r1 = '❌'; r2 = '🪙'; r3 = '💎'; 
+                }
+
+                setTimeout(() => { reels[0].classList.remove('spinning'); reels[0].innerText = r1; }, 500);
+                setTimeout(() => { reels[1].classList.remove('spinning'); reels[1].innerText = r2; }, 1000);
+                setTimeout(() => { 
+                    reels[2].classList.remove('spinning'); 
+                    reels[2].innerText = r3; 
+                    
+                    if(res.gainVal === 6700) { triggerLucky67(); progresserDefi('s4', 1); }
+
+                    if(res.gainType === 'perdu' || (r1 === '❌' && r3 === '💎')) {
+                        animerResultatHasard(slotMsg, "PERDU!");
+                    } else {
+                        donnerRecompenseHasard(res.gainType, res.gainVal, slotMsg);
+                    }
+                    
+                    hasardSpinCount++;
+                    if(hasardSpinCount >= 10) {
+                        hasardSpinCount = 0;
+                        majRoueCosmetiques(true);
+                    } else {
+                        majRoueCosmetiques(false);
+                    }
+                    
+                    isSpinning = false;
+                    verifierSpinBtn();
+                    sauvegarderJeu();
+                }, 1500);
+            }
+        }, 50);
+    }
+
+    function initialiserSabot() {
+        try {
+            const couleurs = ['♥', '♦', '♣', '♠'];
+            const valeurs = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A'];
+            sabot = []; runningCount = 0;
+            for(let jeu=0; jeu<6; jeu++) { for (let c of couleurs) { for (let v of valeurs) { sabot.push({ valeur: v, couleur: c }); } } }
+            for (let i = sabot.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); let temp = sabot[i]; sabot[i] = sabot[j]; sabot[j] = temp; }
+            majStatistiques();
+        } catch(e) {}
+    }
+
+    function majCompteur(c) {
+        if(!c) return;
+        if(['2','3','4','5','6'].includes(c.valeur)) runningCount++; else if(['10','J','Q','K','A'].includes(c.valeur)) runningCount--;
+        majStatistiques();
+    }
+
+    function safeDisable(id, condition) {
+        let el = document.getElementById(id);
+        if (el) el.disabled = condition;
+    }
+
+    function piocherCarte(visible = true) {
+        if(sabot.length < 15) initialiserSabot();
+        let c = sabot.pop(); 
+        if(!c) { initialiserSabot(); c = sabot.pop(); }
+        c.visible = visible; c.isNew = true; 
+        if (visible) majCompteur(c); return c;
+    }
+
+    function creerCarteHtml(carte) {
+        if(!carte) return '';
+        let classAnim = carte.isNew ? 'card-anim' : ''; carte.isNew = false; 
+        let cosmo = cosmeticsDB.find(c => c.id === cosmetiqueEquipe) || cosmeticsDB[0];
+        
+        if (!carte.visible) {
+            if(cosmo.is67) {
+                return `<div class="card card-back-67 ${classAnim}"></div>`;
+            }
+            return `<div class="card card-back-custom ${classAnim}" style="background: ${cosmo.bg}; border: 2px solid rgba(255,255,255,0.2); display: flex; align-items: center; justify-content: center; font-size: 50px; border-radius:10px;">${cosmo.emoji}</div>`;
+        }
+        
+        const estRouge = ['♥', '♦'].includes(carte.couleur); const classeRouge = estRouge ? 'red' : '';
+        return `<div class="card ${classeRouge} ${classAnim}"><div class="card-rank">${carte.valeur}</div><div class="card-suit">${carte.couleur}</div></div>`;
+    }
+
+    function calculerScore(main) {
+        if(!main || main.length === 0) return 0;
+        let score = 0; let as = 0; let cacherCartes = main.filter(c => c && c.visible);
+        for (let carte of cacherCartes) {
+            if (!carte) continue;
+            if (['J', 'Q', 'K'].includes(carte.valeur)) score += 10;
+            else if (carte.valeur === 'A') { score += 11; as += 1; }
+            else score += parseInt(carte.valeur);
+        }
+        while (score > 21 && as > 0) { score -= 10; as -= 1; }
+        return score;
+    }
+
+    function majAffichageMise() { 
+        syncSoldeGlobal(); 
+        let currentMise = modeJeu === 'solo' ? mise : (multiTourIndex < multiJoueurs.length ? multiJoueurs[multiTourIndex].mise : 0);
+        let currentSolde = modeJeu === 'solo' ? solde : (multiTourIndex < multiJoueurs.length ? multiJoueurs[multiTourIndex].solde : 0);
+        
+        let mVal = document.getElementById('mise-val');
+        if(mVal) mVal.innerText = currentMise; 
+
+        let sVal = document.getElementById('hud-solde');
+        if(sVal) {
+            sVal.innerText = currentSolde;
+            sVal.style.color = currentSolde < 0 ? '#E74C3C' : 'inherit';
+        }
+
+        if (modeJeu === 'multi') {
+            let listHtml = '';
+            multiJoueurs.forEach((j, index) => {
+                let isTurn = (index === multiTourIndex);
+                let indicator = isTurn ? '➡️ ' : '';
+                let color = j.solde < 0 ? '#E74C3C' : 'inherit';
+                let op = j.etat === 'elimine' ? '0.3' : '1';
+                listHtml += `<div style="margin-bottom:15px; padding:20px; background:rgba(0,0,0,0.3); border-radius:12px; border: 2px solid ${isTurn ? 'var(--accent-color)' : 'rgba(255,255,255,0.05)'}; opacity:${op};">
+                    <div style="font-weight:bold; color:var(--text-primary); margin-bottom:10px; font-size:20px;">${indicator}${j.avatar} ${j.nom}</div>
+                    <div style="font-size:16px; color:var(--text-secondary); display:flex; justify-content:space-between;">
+                        <span style="color:${color}">Solde: ${j.solde} 🪙</span>
+                        <span>Mise: ${j.mise}</span>
+                    </div>
+                </div>`;
+            });
+            document.getElementById('multi-players-list').innerHTML = listHtml;
+        } 
+    }
+
+    function majStatistiques() {
+        let eJ = document.getElementById('stat-jouees'); if(eJ) eJ.innerText = stats.jouees;
+        let eG = document.getElementById('stat-gagnees'); if(eG) eG.innerText = stats.gagnees;
+        let wr = stats.jouees > 0 ? Math.round((stats.gagnees / stats.jouees) * 100) : 0;
+        let eWr = document.getElementById('stat-wr'); if(eWr) eWr.innerText = wr + '%';
+        let eC = document.getElementById('stat-compteur'); if(eC) eC.innerText = runningCount;
+    }
+
+    function miser(montant) {
+        if (etape !== 'mise') return;
+        if (modeJeu === 'multi' && multiJoueurs[multiTourIndex].etat === 'elimine') return;
+        
+        let currentSolde = modeJeu === 'solo' ? solde : multiJoueurs[multiTourIndex].solde;
+        
+        let maxAdd = 0;
+        if (currentSolde > 0) {
+            maxAdd = currentSolde;
+        } else if (currentSolde <= 0) {
+            maxAdd = Infinity;
+        }
+        
+        if (montant === 'all') { 
+            if (currentSolde > 0) {
+                montant = maxAdd;
+                flagAllIn = true; 
+            } else {
+                return;
+            }
+        } else {
+            if(currentSolde > 0 && montant > maxAdd) montant = maxAdd;
+            flagAllIn = false; 
+        }
+        
+        if (montant > 0) { 
+            if (modeJeu === 'solo') {
+                solde -= montant; mise += montant; 
+            } else {
+                multiJoueurs[multiTourIndex].solde -= montant;
+                multiJoueurs[multiTourIndex].mise += montant;
+            }
+            majAffichageMise(); verifierBoutons(); 
+            progresserDefi('q4', montant);
+        }
+    }
+
+    function annulerMise() {
+        if (etape !== 'mise') return; 
+        if (modeJeu === 'solo') {
+            solde += mise;
+            mise = 0; 
+        } else {
+            let j = multiJoueurs[multiTourIndex];
+            j.solde += j.mise;
+            j.mise = 0;
+        }
+        flagAllIn = false; majAffichageMise(); verifierBoutons();
+    }
+
+    function afficherMains() {
+        let cCards = document.getElementById('croupier-cards');
+        let bulleCroupier = document.getElementById('croupier-score');
+        
+        if (mainCroupier && mainCroupier.length > 0) {
+            let htmlCroupier = '';
+            for (let carte of mainCroupier) htmlCroupier += creerCarteHtml(carte);
+            if (cCards) cCards.innerHTML = htmlCroupier;
+            
+            let scoreCroupierVisible = calculerScore(mainCroupier);
+            if (bulleCroupier) {
+                bulleCroupier.innerText = mainCroupier[0].visible ? scoreCroupierVisible : "?";
+                bulleCroupier.style.visibility = 'visible';
+            }
+        } else {
+            if (cCards) cCards.innerHTML = '';
+            if (bulleCroupier) { bulleCroupier.style.visibility = 'hidden'; bulleCroupier.innerText = ''; }
+        }
+
+        if (modeJeu === 'solo') {
+            let jCards = document.getElementById('joueur-cards');
+            let bulleJoueur = document.getElementById('joueur-score');
+            
+            if (mainJoueur && mainJoueur.length > 0) {
+                let htmlJoueur = '';
+                for (let carte of mainJoueur) htmlJoueur += creerCarteHtml(carte);
+                if (jCards) jCards.innerHTML = htmlJoueur;
+                
+                const scoreJoueur = calculerScore(mainJoueur);
+                if (bulleJoueur) {
+                    bulleJoueur.innerText = scoreJoueur; bulleJoueur.style.visibility = 'visible';
+                    if (scoreJoueur === 21 && mainJoueur.length === 2) bulleJoueur.classList.add('blackjack-bubble'); 
+                    else bulleJoueur.classList.remove('blackjack-bubble');
+                }
+            } else {
+                if (jCards) jCards.innerHTML = '';
+                if (bulleJoueur) { bulleJoueur.style.visibility = 'hidden'; bulleJoueur.innerText = ''; }
+            }
+        } else {
+            let htmlJoueurs = '';
+            multiJoueurs.forEach((j, index) => {
+                if(j.etat === 'elimine') return;
+                let classActive = (etape === 'jeu' && index === multiTourIndex) ? 'active' : '';
+                let cartesHtml = j.main.map(c => creerCarteHtml(c)).join('');
+                let score = calculerScore(j.main);
+                let scoreHtml = score > 0 ? `<div class="score-bubble ${score === 21 && j.main.length === 2 ? 'blackjack-bubble' : ''}" style="visibility:visible; position:static; margin-bottom:10px; font-size:18px; padding:8px 15px;">${score}</div>` : '';
+
+                htmlJoueurs += `
+                    <div class="multi-player-box ${classActive}">
+                        <div class="zone-label" style="font-size:18px; display:flex; gap:10px; align-items:center;">${j.avatar} ${j.nom}</div>
+                        ${scoreHtml}
+                        <div class="multi-cards-container">${cartesHtml}</div>
+                    </div>
+                `;
+            });
+            document.getElementById('multi-zone').innerHTML = htmlJoueurs;
+        }
+    }
+
+    function verifierBoutons() {
+        const estMise = (etape === 'mise'); const estJeu = (etape === 'jeu');
+        
+        let currentMise = modeJeu === 'solo' ? mise : (multiTourIndex < multiJoueurs.length ? multiJoueurs[multiTourIndex].mise : 0);
+        let currentSolde = modeJeu === 'solo' ? solde : (multiTourIndex < multiJoueurs.length ? multiJoueurs[multiTourIndex].solde : 0);
+
+        let available = currentSolde > 0 ? currentSolde : Infinity;
+
+        safeDisable('bet-10', !estMise || available < 10);
+        safeDisable('bet-50', !estMise || available < 50);
+        safeDisable('bet-100', !estMise || available < 100);
+        safeDisable('bet-1000', !estMise || available < 1000);
+        safeDisable('bet-all', !estMise || available <= 0 || currentSolde <= 0);
+        safeDisable('bet-clear', !estMise || currentMise === 0);
+        safeDisable('btn-distribuer', !estMise || currentMise === 0);
+        
+        let canDouble = estJeu && (modeJeu === 'solo' ? mainJoueur.length === 2 && (currentSolde >= currentMise || currentSolde <= 0) : (multiTourIndex < multiJoueurs.length && multiJoueurs[multiTourIndex].main.length === 2 && (currentSolde >= currentMise || currentSolde <= 0)));
+
+        safeDisable('btn-tirer', !estJeu);
+        safeDisable('btn-rester', !estJeu);
+        safeDisable('btn-doubler', !canDouble);
+
+        let btnDistribuer = document.getElementById('btn-distribuer');
+        if (btnDistribuer) {
+            btnDistribuer.innerText = (modeJeu === 'multi' && multiTourIndex < multiJoueurs.length - 1) ? 'VALIDER' : 'JOUER';
+        }
+
+        document.querySelectorAll('.nav-tab').forEach(tab => {
+            if(estJeu || isSpinning) {
+                tab.style.pointerEvents = 'none';
+                tab.style.opacity = '0.5';
+            } else {
+                tab.style.pointerEvents = 'auto';
+                tab.style.opacity = '1';
+            }
+        });
+    }
+
+    function distribuer() {
+        if (modeJeu === 'multi') {
+            if (multiJoueurs[multiTourIndex].mise === 0) return;
+            
+            multiTourIndex++;
+            while(multiTourIndex < multiJoueurs.length && multiJoueurs[multiTourIndex].etat === 'elimine') {
+                multiTourIndex++;
+            }
+            if (multiTourIndex < multiJoueurs.length) {
+                majAffichageMise(); verifierBoutons(); return;
+            }
+            
+            multiTourIndex = 0;
+            etape = 'jeu';
+            let banner = document.getElementById('result-banner');
+            if (banner) banner.classList.remove('active');
+
+            multiJoueurs.forEach(j => {
+                if(j.etat !== 'elimine') j.main = [piocherCarte(true), piocherCarte(true)];
+            });
+            mainCroupier = [piocherCarte(false), piocherCarte(true)];
+
+            afficherMains(); verifierBoutons();
+            boucleTourMulti();
+            return;
+        }
+
+        if (mise === 0) return;
+        derniereMise = mise; etape = 'jeu';
+        
+        syncSoldeGlobal();
+        
+        progresserDefi('play_games', 1);
+        progresserDefi('s2', 1);
+        progresserDefi('q1', 1);
+        
+        let banner = document.getElementById('result-banner');
+        if (banner) banner.classList.remove('active');
+        
+        mainJoueur = [piocherCarte(true), piocherCarte(true)]; 
+        mainCroupier = [piocherCarte(false), piocherCarte(true)];
+        
+        afficherMains(); verifierBoutons();
+        
+        if (calculerScore(mainJoueur) === 21) {
+            etape = 'fin'; 
+            if(mainCroupier[0]) {
+                mainCroupier[0].visible = true; majCompteur(mainCroupier[0]); 
+            }
+            afficherMains(); verifierBoutons();
+            
+            if (calculerScore(mainCroupier) === 21) {
+                setTimeout(() => { gererFin("ÉGALITÉ", 1, 'tie'); }, 1000);
+            } else {
+                setTimeout(() => { gererFin("BLACKJACK !", 2.5, 'bj'); }, 1000);
+            }
+        }
+    }
+
+    function boucleTourMulti() {
+        while(multiTourIndex < multiJoueurs.length && multiJoueurs[multiTourIndex].etat === 'elimine') {
+            multiTourIndex++;
+        }
+        if (multiTourIndex >= multiJoueurs.length) {
+            etape = 'fin';
+            if(mainCroupier[0]) {
+                mainCroupier[0].visible = true; mainCroupier[0].isNew = true; majCompteur(mainCroupier[0]);
+            }
+            afficherMains();
+            tourCroupierInterval = setInterval(() => {
+                let scoreCroupier = calculerScore(mainCroupier);
+                if (scoreCroupier < 17) {
+                    mainCroupier.push(piocherCarte(true)); afficherMains();
+                } else {
+                    clearInterval(tourCroupierInterval);
+                    setTimeout(() => { determinerGagnantMulti(); }, 800);
+                }
+            }, 600);
+        } else {
+            if (calculerScore(multiJoueurs[multiTourIndex].main) === 21) {
+                multiJoueurs[multiTourIndex].etat = 'blackjack';
+                multiTourIndex++;
+                boucleTourMulti();
+            } else {
+                afficherMains();
+                verifierBoutons();
+                majAffichageMise();
+            }
+        }
+    }
+
+    function passerAuJoueurSuivant() {
+        multiTourIndex++;
+        boucleTourMulti();
+    }
+
+    function determinerGagnantMulti() {
+        let scoreCroupier = calculerScore(mainCroupier);
+        let resultatsHtml = '';
+
+        multiJoueurs.forEach(j => {
+            if (j.etat === 'elimine') return;
+
+            let score = calculerScore(j.main);
+            let gain = 0;
+            let statut = '';
+
+            if (score > 21) {
+                statut = '<span style="color:var(--lose-color)">DÉFAITE</span>';
+            } else if (scoreCroupier > 21 || score > scoreCroupier) {
+                if (j.etat === 'blackjack') {
+                    statut = '<span style="color:var(--accent-color)">BLACKJACK</span>';
+                    gain = Math.floor(j.mise * 2.5);
+                } else {
+                    statut = '<span style="color:var(--win-color)">VICTOIRE</span>';
+                    gain = j.mise * 2;
+                }
+            } else if (score === scoreCroupier) {
+                statut = '<span style="color:var(--tie-color)">ÉGALITÉ</span>';
+                gain = j.mise;
+            } else {
+                statut = '<span style="color:var(--lose-color)">DÉFAITE</span>';
+            }
+
+            j.solde += gain;
+            resultatsHtml += `<div style="font-size:24px; margin:5px;">${j.avatar} ${j.nom}: ${statut} (+${gain}🪙)</div>`;
+        });
+
+        let banner = document.getElementById('result-banner');
+        let text = document.getElementById('result-msg');
+        if (banner && text) {
+            banner.className = 'banner-result active tie';
+            banner.querySelector('.banner-content').style.borderColor = 'var(--accent-color)';
+            text.className = 'result-text tie';
+            text.style.fontSize = '32px';
+            text.innerHTML = "FIN DU TOUR<br><br>" + resultatsHtml;
+        }
+
+        majAffichageMise();
+        setTimeout(() => {
+            if (banner) banner.classList.remove('active');
+            preparerNouvelleManche();
+        }, 4000);
+    }
+
+    function tirer() {
+        if (etape !== 'jeu') return;
+        if (modeJeu === 'multi') {
+            let j = multiJoueurs[multiTourIndex];
+            j.main.push(piocherCarte(true));
+            if (calculerScore(j.main) > 21) {
+                j.etat = 'bust';
+                afficherMains();
+                setTimeout(() => { passerAuJoueurSuivant(); }, 1000);
+                verifierBoutons();
+                return;
+            }
+            afficherMains();
+            verifierBoutons();
+            return;
+        }
+
+        mainJoueur.push(piocherCarte(true)); afficherMains();
+        if (calculerScore(mainJoueur) > 21) { 
+            etape = 'fin'; 
+            if(mainCroupier[0]) {
+                mainCroupier[0].visible = true; majCompteur(mainCroupier[0]); 
+            }
+            afficherMains(); 
+            setTimeout(() => { gererFin("DÉFAITE", 0, 'lose'); }, 1000);
+        }
+        verifierBoutons();
+    }
+
+    function doubler() {
+        if (etape !== 'jeu') return;
+        if (modeJeu === 'multi') {
+            let j = multiJoueurs[multiTourIndex];
+            j.solde -= j.mise; 
+            j.mise *= 2; 
+            majAffichageMise();
+            j.main.push(piocherCarte(true));
+            j.etat = calculerScore(j.main) > 21 ? 'bust' : 'stand';
+            afficherMains();
+            setTimeout(() => { passerAuJoueurSuivant(); }, 1000);
+            verifierBoutons();
+            return;
+        }
+
+        solde -= mise; 
+        mise *= 2; 
+        majAffichageMise();
+        progresserDefi('q5', 1);
+        mainJoueur.push(piocherCarte(true)); afficherMains();
+        if (calculerScore(mainJoueur) > 21) { 
+            etape = 'fin'; 
+            if(mainCroupier[0]) {
+                mainCroupier[0].visible = true; majCompteur(mainCroupier[0]); 
+            }
+            afficherMains(); 
+            setTimeout(() => { gererFin("DÉFAITE", 0, 'lose'); }, 1000);
+        } 
+        else { rester(); }
+    }
+
+    function rester() {
+        if (etape !== 'jeu') return;
+        if (modeJeu === 'multi') {
+            multiJoueurs[multiTourIndex].etat = 'stand';
+            passerAuJoueurSuivant();
+            verifierBoutons();
+            return;
+        }
+
+        etape = 'fin'; verifierBoutons();
+        
+        if(mainCroupier[0]) {
+            mainCroupier[0].visible = true; mainCroupier[0].isNew = true; majCompteur(mainCroupier[0]); 
+        }
+        afficherMains();
+        
+        tourCroupierInterval = setInterval(() => {
+            let scoreCroupier = calculerScore(mainCroupier);
+            if (scoreCroupier < 17) { 
+                mainCroupier.push(piocherCarte(true)); 
+                afficherMains(); 
+            } else { 
+                clearInterval(tourCroupierInterval); 
+                setTimeout(() => { determinerGagnant(); }, 800);
+            }
+        }, 600);
+    }
+
+    function determinerGagnant() {
+        let scoreJoueur = calculerScore(mainJoueur); let scoreCroupier = calculerScore(mainCroupier);
+        if (scoreCroupier > 21) gererFin("VICTOIRE", 2, 'win');
+        else if (scoreJoueur > scoreCroupier) gererFin("VICTOIRE", 2, 'win');
+        else if (scoreCroupier > scoreJoueur) gererFin("DÉFAITE", 0, 'lose');
+        else gererFin("ÉGALITÉ", 1, 'tie');
+    }
+
+    function gererFin(msg, multiplicateur, type) {
+        let gain = Math.floor(mise * multiplicateur);
+        solde += gain;
+        stats.jouees++;
+        
+        let isWin = multiplicateur > 1;
+        let isTie = multiplicateur === 1;
+
+        if (isWin) { 
+            stats.gagnees++; 
+            ajouterXP(flagAllIn ? 12 : 5);
+            majSerieVictoire(true);
+            progresserDefi('win_hands', 1);
+            progresserDefi('q2', 1);
+            progresserDefi('s5', 1);
+            progresserDefi('h4', 1);
+            if (type === 'bj') {
+                progresserDefi('blackjack', 1);
+                progresserDefi('h2', 1);
+            }
+        } else if (isTie) {
+            ajouterXP(flagAllIn ? 6 : 2);
+            progresserDefi('q6', 1);
+            majSerieVictoire(null);
+        } else {
+            ajouterXP(0);
+            majSerieVictoire(false);
+        }
+        
+        majStatistiques(); mise = 0; flagAllIn = false; majAffichageMise(); verifierBoutons();
+
+        let banner = document.getElementById('result-banner');
+        let text = document.getElementById('result-msg');
+        
+        if (banner && text) {
+            banner.className = 'banner-result active';
+            text.className = 'result-text';
+            
+            if(type === 'bj') {
+                banner.querySelector('.banner-content').style.borderColor = 'var(--win-color)';
+                text.classList.add('bj');
+                banner.classList.add('win');
+            } else {
+                if(type === 'win') { banner.querySelector('.banner-content').style.borderColor = 'var(--win-color)'; }
+                if(type === 'lose') banner.querySelector('.banner-content').style.borderColor = 'var(--lose-color)';
+                if(type === 'tie') banner.querySelector('.banner-content').style.borderColor = 'var(--tie-color)';
+                banner.classList.add(type);
+                text.classList.add(type);
+            }
+            
+            text.innerText = msg;
+        }
+        
+        setTimeout(() => {
+            if (banner) banner.classList.remove('active');
+            preparerNouvelleManche();
+        }, 1500);
+    }
+
+    function preparerNouvelleManche() {
+        etape = 'mise'; flagAllIn = false;
+        mainCroupier = [];
+
+        if (modeJeu === 'multi') {
+            multiJoueurs.forEach(j => {
+                j.mise = 0; j.main = [];
+                j.etat = 'attente';
+            });
+            multiTourIndex = 0;
+        } else {
+            mainJoueur = [];
+            mise = 0;
+            if(solde <= -5000) {
+                alert("GAME OVER ! Votre dette a atteint -5000 🪙. Réinitialisation de la partie.");
+                solde = 1500;
+                diamants = 0;
+                mise = 0;
+                stats = { jouees: 0, gagnees: 0, meilleurScore: 1500 };
+                xp = 0;
+                niveau = 1;
+                serieVictoire = 0;
+                highestUnlockedTier = 0;
+                majSerieVictoire(false);
+                genererPass();
+                majAffichageMise();
+            }
+        }
+
+        majAffichageMise();
+        majStatistiques();
+        afficherMains();
+        verifierBoutons();
+        
+        for(let i=1; i<=9; i++) {
+            let dot = document.getElementById('dot-'+i);
+            if (dot) {
+                if (i <= serieVictoire) dot.classList.add('active');
+                else dot.classList.remove('active');
+            }
+        }
+        sauvegarderJeu();
+    }
+
+    window.onload = () => { 
+        chargerJeu();
+        const passWrap = document.querySelector('.brawl-pass-wrapper');
+        if (passWrap) {
+            passWrap.addEventListener('wheel', function(e) {
+                if (e.deltaY !== 0) {
+                    e.preventDefault();
+                    passWrap.scrollLeft += e.deltaY;
+                }
+            }, { passive: false });
+        }
+        
+        let htmlDots = "";
+        for(let i=1; i<=9; i++) htmlDots += `<div class="chest-dot" id="dot-${i}"></div>`;
+        document.querySelectorAll('.chest-indicator').forEach(el => el.innerHTML = htmlDots);
+        
+        initAvatars();
+        majNom(nomJoueur);
+        genererBoutique();
+        genererCasier();
+        ajouterXP(0); 
+        genererDefis();
+        initialiserSabot(); 
+        majStatistiques(); 
+        syncSoldeGlobal(); 
+        changerEcran('menu-screen');
+    };
+</script>
+</body>
+</html>
