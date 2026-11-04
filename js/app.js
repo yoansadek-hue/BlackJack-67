@@ -1,13 +1,14 @@
 // Application : navigation, barre d'onglets, accueil, boutique, amis, profil, réglages
-import { $, $$, fmt, esc, toast, sheet, closeSheet, sfx, vib } from './util.js';
+import { $, $$, fmt, esc, toast, sheet, closeSheet, sfx, vib, AVATARS, avHTML, paintAv } from './util.js';
 import { profile, stats, settings, friends, save, resetAll, ALPHA } from './store.js';
 import { STAKES } from './engine.js';
+import { checkAch, achHTML } from './achievements.js';
 import * as net from './net.js';
 import * as table from './table.js';
 import * as auth from './auth.js';
 
 // ---------- Apparence ----------
-function applyLook() { document.body.dataset.back = profile.back; $$('[data-av]').forEach(e => e.textContent = profile.avatar); }
+function applyLook() { document.body.dataset.back = profile.back; $$('[data-av]').forEach(e => paintAv(e, profile.avatar, profile.name)); }
 
 // ---------- Navigation + barre d'onglets en verre ----------
 const bar = $('#tabbar'), pill = $('#tabPill'), TABS = $$('.tab');
@@ -59,7 +60,7 @@ const STAKE_COLORS = ['#f5f5f7', '#64d2ff', '#bf5af2', '#ffd60a', '#ff453a'];
 const unlocked = lv => profile.bank >= lv.need || lv.id === 0;
 function renderHome() {
   if (!unlocked(STAKES[profile.stake])) profile.stake = 0;
-  $('#stakes').innerHTML = STAKES.map(lv => `<button class="stake${lv.id === profile.stake ? ' sel' : ''}${unlocked(lv) ? '' : ' lock'}" data-st="${lv.id}">
+  $('#stakes').innerHTML = STAKES.filter(lv => !lv.hidden).map(lv => `<button class="stake${lv.id === profile.stake ? ' sel' : ''}${unlocked(lv) ? '' : ' lock'}" data-st="${lv.id}">
     <i class="dotc" style="background:${STAKE_COLORS[lv.id]}"></i>
     <div><b>${lv.name}</b><br><small>Mise ${short(lv.min)} – ${short(lv.max)}</small></div>
     <div><span class="amt">${unlocked(lv) ? short(lv.min) : short(lv.need)}</span><br><small>${unlocked(lv) ? 'mise minimum' : 'jetons requis'}</small></div></button>`).join('');
@@ -68,7 +69,7 @@ function renderHome() {
     if (!unlocked(lv)) { vib(30); return toast(`Il te faut ${fmt(lv.need)} jetons pour la table ${lv.name}`, { cls: 'bad' }); }
     profile.stake = lv.id; save(); sfx.tap(); renderHome();
   });
-  $$('[data-av]').forEach(e => e.textContent = profile.avatar);
+  applyLook();
 }
 const short = v => v >= 1000 ? (v / 1000).toLocaleString('fr-FR') + 'k' : String(v);
 $('[data-go-profile]').onclick = () => go('s-profile');
@@ -80,9 +81,10 @@ $$('[data-mode]').forEach(b => b.onclick = () => {
   sfx.tap();
   const m = b.dataset.mode;
   if (m === 'solo' || m === 'train') { table.startLocal(m); openTable(); }
-  else if (profile.bank < STAKES[profile.stake].min) toast('Pas assez de jetons pour cette table', { cls: 'bad' });
+  else if (m !== 'tour' && profile.bank < STAKES[profile.stake].min) toast('Pas assez de jetons pour cette table', { cls: 'bad' });
   else if (!net.online()) toast('Connexion au réseau impossible pour le moment', { cls: 'bad' });
   else if (m === 'quick') quick();
+  else if (m === 'tour') tourSheet();
   else friendsSheet();
 });
 
@@ -111,9 +113,17 @@ function friendsSheet(prefill = '') {
   el.querySelector('#hostBtn').onclick = () => hostRoom();
   el.querySelector('#joinForm').onsubmit = async e => { e.preventDefault(); const c = clean($('#joinCode').value); if (c.length === 6) join(c); };
   if (friends.length) {
-    $('#invList').innerHTML = friends.map(f => `<div class="item"><div class="av">${esc(f.avatar || '🙂')}</div><div class="who"><b>${esc(f.name)}</b><small>${f.code}</small></div><button class="btn sm white" data-inv="${f.code}">Inviter</button></div>`).join('');
+    $('#invList').innerHTML = friends.map(f => `<div class="item">${avHTML(f.avatar, f.name)}<div class="who"><b>${esc(f.name)}</b><small>${f.code}</small></div><button class="btn sm white" data-inv="${f.code}">Inviter</button></div>`).join('');
     $$('[data-inv]').forEach(b => b.onclick = () => invite(b.dataset.inv));
   }
+}
+function tourSheet() {
+  const el = sheet(`<h2>Tournoi entre amis</h2><p>Chacun reçoit 5 000 jetons de tournoi pour 15 mains. Le meilleur solde final gagne <b>1 000</b> vrais jetons. Tes jetons à toi ne sont pas utilisés.</p>
+    <button class="btn white full" id="tourHost">Créer le tournoi · ${profile.code}</button>
+    <div class="sep">ou</div>
+    <form class="addf" id="tourJoin"><input id="tourCode" maxlength="6" placeholder="Code du tournoi"><button class="btn">Rejoindre</button></form>`);
+  el.querySelector('#tourHost').onclick = () => { if (table.isPlaying()) table.exit(true); table.startHost('Tournoi', { tour: true }); openTable(); toast(`Code du tournoi : <b>${profile.code}</b>`, { ms: 5000 }); };
+  el.querySelector('#tourJoin').onsubmit = e => { e.preventDefault(); const c = clean($('#tourCode').value); if (c.length === 6) join(c); };
 }
 function hostRoom() { if (!table.hosting()) table.startHost('Amis'); openTable(); toast(`Ton code de table : <b>${profile.code}</b>`, { ms: 5000 }); }
 async function join(code) {
@@ -133,14 +143,13 @@ const clean = s => String(s).toUpperCase().split('').filter(c => ALPHA.includes(
 
 // ---------- Boutique ----------
 const SHOP = {
-  av: [['🙂', 0], ['😎', 500], ['🤠', 800], ['🦊', 1200], ['🐼', 1500], ['🐯', 2000], ['🥷', 3000], ['🤖', 4000], ['👽', 6000], ['🦁', 9000], ['🐉', 15000], ['👑', 50000]],
   back: [['stripes', 'Rayures', 0], ['dots', 'Points', 600], ['grid', 'Grille', 1200], ['waves', 'Ondes', 2500], ['noir', 'Noir', 5000], ['rouge', 'Rouge', 10000], ['or', 'Or', 40000]],
 };
 function renderShop() {
   const price = (key, p, eq) => `<span class="price${profile.owned.includes(key) ? ' own' : ''}">${eq ? 'Équipé' : profile.owned.includes(key) ? 'Possédé' : `<i class="coin"></i>${fmt(p)}`}</span>`;
-  $('#shop').innerHTML = `<h2 class="h">Avatars</h2><div class="shopgrid">${SHOP.av.map(([e, p]) => {
+  $('#shop').innerHTML = `<h2 class="h">Avatars</h2><div class="shopgrid">${AVATARS.map(([e, name, p]) => {
       const key = 'av:' + e, eq = profile.avatar === e;
-      return `<button class="sitem${eq ? ' eq' : ''}" data-buy="${key}" data-price="${p}"><span class="av">${e}</span>${price(key, p, eq)}</button>`;
+      return `<button class="sitem${eq ? ' eq' : ''}" data-buy="${key}" data-price="${p}">${avHTML(e, profile.name)}<b>${name}</b>${price(key, p, eq)}</button>`;
     }).join('')}</div>
     <h2 class="h">Dos de cartes</h2><div class="shopgrid">${SHOP.back.map(([id, name, p]) => {
       const key = 'back:' + id, eq = profile.back === id;
@@ -164,10 +173,10 @@ async function renderFriends() {
   const list = $('#friendList');
   if (!friends.length) { list.innerHTML = '<div class="empty">Aucun ami pour l\'instant.<br>Partage ton code pour jouer ensemble.</div>'; return; }
   list.innerHTML = '<div class="list">' + friends.map(f => `<div class="item" data-f="${f.code}">
-    <div class="av">${esc(f.avatar || '🙂')}<i class="st"></i></div>
+    <div class="avw">${avHTML(f.avatar, f.name)}<i class="st"></i></div>
     <div class="who"><b>${esc(f.name)}</b><small class="fs">${f.code} · …</small></div>
     <button class="btn sm white" data-inv="${f.code}">Inviter</button>
-    <button class="btn sm" data-del="${f.code}" aria-label="Retirer">✕</button></div>`).join('') + '</div>';
+    <button class="btn sm" data-del="${f.code}" aria-label="Retirer"><svg viewBox="0 0 24 24" width="14" height="14"><path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg></button></div>`).join('') + '</div>';
   $$('#friendList [data-inv]').forEach(b => b.onclick = () => invite(b.dataset.inv));
   $$('#friendList [data-del]').forEach(b => b.onclick = () => { const i = friends.findIndex(f => f.code === b.dataset.del); if (i >= 0) friends.splice(i, 1); save(); renderFriends(); });
   if (!net.online()) return;
@@ -175,7 +184,7 @@ async function renderFriends() {
     const row = $(`[data-f="${f.code}"]`); if (!row) return;
     row.querySelector('.st').classList.toggle('on', !!r);
     row.querySelector('.fs').textContent = f.code + ' · ' + (r ? (r.hosting ? 'à une table' : 'en ligne') : 'hors ligne');
-    if (r && r.name && (r.name !== f.name || r.avatar !== f.avatar)) { f.name = r.name; f.avatar = r.avatar; save(true); row.querySelector('b').textContent = r.name; row.querySelector('.av').firstChild.textContent = r.avatar || '🙂'; }
+    if (r && r.name && (r.name !== f.name || r.avatar !== f.avatar)) { f.name = r.name; f.avatar = r.avatar; save(true); row.querySelector('b').textContent = r.name; paintAv(row.querySelector('.av'), r.avatar, r.name); }
   });
 }
 $('#copyCode').onclick = () => { try { navigator.clipboard.writeText(profile.code); toast('Code copié'); } catch (e) {} };
@@ -187,7 +196,7 @@ $('#addFriend').onsubmit = async e => {
   if (friends.some(f => f.code === code)) return toast('Déjà dans tes amis');
   const r = await net.ping(code);
   friends.push({ code, name: (r && r.name) || 'Ami ' + code });
-  save(); $('#friendCode').value = ''; renderFriends();
+  save(); checkAch(); $('#friendCode').value = ''; renderFriends();
   toast('Ami ajouté');
   net.notify(code, { kind: 'friend', from: { code: profile.code, name: profile.name } }).catch(() => {});
 };
@@ -209,7 +218,7 @@ net.on('invite', c => {
 function renderProfile() {
   const acc = stats.dec ? Math.round(100 * stats.good / stats.dec) + '%' : '–';
   const wr = stats.hands ? Math.round(100 * stats.won / stats.hands) + '%' : '–';
-  $('#profile').innerHTML = `<div class="phead"><div class="av lg">${esc(profile.avatar)}</div><b>${esc(profile.name)}</b><small>${esc((auth.currentUser() || {}).email || '')} · code ${profile.code}</small></div>
+  $('#profile').innerHTML = `<div class="phead">${avHTML(profile.avatar, profile.name, 'lg')}<b>${esc(profile.name)}</b><small>${esc((auth.currentUser() || {}).email || '')} · code ${profile.code}</small></div>
     <div class="stats">
       <div class="stat"><b>${fmt(profile.bank)}</b><span>Jetons</span></div>
       <div class="stat"><b>${fmt(stats.best)}</b><span>Meilleur solde</span></div>
@@ -219,7 +228,7 @@ function renderProfile() {
       <div class="stat"><b>${fmt(stats.bj)}</b><span>Blackjacks</span></div>
       <div class="stat"><b>${stats.bestStreak}</b><span>Meilleure série</span></div>
       <div class="stat"><b>${fmt(stats.online)}</b><span>Mains en ligne</span></div>
-    </div>`;
+    </div>${achHTML()}`;
 }
 
 // ---------- Réglages ----------
@@ -238,7 +247,7 @@ function renderSettings() {
     <button class="btn danger full" id="resetAll" style="margin-top:8px">Réinitialiser la progression</button>`;
   $('#logout').onclick = () => auth.logout();
   $$('.switch').forEach(b => b.onclick = () => { settings[b.dataset.k] = !settings[b.dataset.k]; b.classList.toggle('on'); save(); sfx.tap(); });
-  $('#nameIn').onchange = e => { const v = e.target.value.trim().slice(0, 16); if (v) { profile.name = v; save(); } };
+  $('#nameIn').onchange = e => { const v = e.target.value.trim().slice(0, 16); if (v) { profile.name = v; save(); applyLook(); } };
   $('#resetAll').onclick = () => {
     const el = sheet(`<h2>Tout réinitialiser ?</h2><p>Jetons, achats, statistiques et amis seront effacés.</p><div class="grid"><button class="btn" id="no">Annuler</button><button class="btn white" id="yes">Réinitialiser</button></div>`);
     el.querySelector('#no').onclick = closeSheet; el.querySelector('#yes').onclick = resetAll;
@@ -260,7 +269,15 @@ const gateMsg = $('#gateMsg'), loginBtn = $('#login');
 loginBtn.onclick = async () => {
   loginBtn.disabled = true; gateMsg.textContent = 'Connexion…';
   try { await auth.signIn(); }
-  catch (e) { loginBtn.disabled = false; gateMsg.textContent = /popup-closed|cancelled/.test(e.code || '') ? '' : 'Connexion impossible. Réessaie.'; }
+  catch (e) {
+    const code = e.code || '';
+    if (/popup-blocked|operation-not-supported/.test(code)) { try { return await auth.signInRedirect(); } catch (er) {} }
+    loginBtn.disabled = false;
+    gateMsg.innerHTML = /popup-closed|cancelled/.test(code) ? ''
+      : code === 'auth/unauthorized-domain' ? `Ce site n'est pas autorisé dans Firebase.<br>Ajoute <b>${location.hostname}</b> dans Authentication › Settings › Authorized domains.`
+      : code === 'auth/operation-not-allowed' ? 'La connexion Google est désactivée dans Firebase (Authentication › Sign-in method).'
+      : `Connexion impossible (${esc(code || e.message)}). Réessaie.`;
+  }
 };
 let booted = false;
 function boot() {
@@ -268,7 +285,7 @@ function boot() {
   document.body.classList.remove('locked');
   applyLook(); save(true);
   TABS.forEach(t => t.classList.toggle('on', t.dataset.go === cur));
-  renderHome(); requestAnimationFrame(() => placePill(2));
+  renderHome(); requestAnimationFrame(() => placePill(2)); checkAch();
   const status = $('#netStatus');
   net.init(profile.code)
     .then(() => { status.classList.add('on'); status.innerHTML = `<i></i>En ligne · code ${profile.code}`; })

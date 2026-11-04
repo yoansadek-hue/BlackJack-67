@@ -26,7 +26,7 @@
     <p>Le blackjack, sans le superflu.</p>
   </div>
   <div class="gate-act">
-    <button class="btn white full gbtn" id="login" disabled><span class="g"></span>Continuer avec Google</button>
+    <button class="btn white full gbtn" id="login" disabled><svg class="glogo" viewBox="0 0 48 48" width="20" height="20" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>Continuer avec Google</button>
     <small id="gateMsg">Chargement…</small>
   </div>
 </div>
@@ -39,10 +39,11 @@
     <div class="stakes" id="stakes"></div>
     <h2 class="h">Jouer</h2>
     <div class="modes">
-      <button class="mode" data-mode="solo"><span class="ic">♠</span><div><b>Solo</b><small>Toi contre le croupier</small></div><em>›</em></button>
-      <button class="mode" data-mode="quick"><span class="ic">⚡</span><div><b>Partie rapide</b><small>Un joueur au hasard, même table</small></div><em>›</em></button>
-      <button class="mode" data-mode="friends"><span class="ic">♣</span><div><b>Avec des amis</b><small>Ta table privée · jusqu'à 4</small></div><em>›</em></button>
-      <button class="mode" data-mode="train"><span class="ic">◎</span><div><b>Entraînement</b><small>Chaque coup est corrigé</small></div><em>›</em></button>
+      <button class="mode" data-mode="solo"><span class="ic"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M12 2c3 3.6 8 7 8 11.2A4.3 4.3 0 0 1 15.7 17.5c-1.2 0-2.2-.5-2.9-1.3.3 2 1 3.6 2.2 4.8H9c1.2-1.2 1.9-2.8 2.2-4.8-.7.8-1.7 1.3-2.9 1.3A4.3 4.3 0 0 1 4 13.2C4 9 9 5.6 12 2z"/></svg></span><div><b>Solo</b><small>Toi contre le croupier</small></div><em>›</em></button>
+      <button class="mode" data-mode="quick"><span class="ic"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M13 2 4 14h6l-1 8 9-12h-6l1-8z"/></svg></span><div><b>Partie rapide</b><small>Un joueur au hasard, même table</small></div><em>›</em></button>
+      <button class="mode" data-mode="friends"><span class="ic"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm0 2c-3.3 0-7 1.7-7 4.5V20h14v-2.5C16 14.7 12.3 13 9 13zm8-2a3.5 3.5 0 1 0-2.1-6.3 5.9 5.9 0 0 1 0 5.6A3.5 3.5 0 0 0 17 11zm1.2 2.1c1.6 1 2.8 2.5 2.8 4.4V20h3v-2.5c0-2.1-2.6-3.8-5.8-4.4z"/></svg></span><div><b>Avec des amis</b><small>Ta table privée · jusqu'à 4</small></div><em>›</em></button>
+      <button class="mode" data-mode="tour"><span class="ic"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M7 3h10v2h3v3a5 5 0 0 1-4.3 4.95A5 5 0 0 1 13 15.9V18h3v3H8v-3h3v-2.1a5 5 0 0 1-2.7-2.95A5 5 0 0 1 4 8V5h3V3zm0 4H6v1a3 3 0 0 0 1.4 2.53A5 5 0 0 1 7 9V7zm10 0v2c0 .53-.08 1.04-.24 1.53A3 3 0 0 0 18 8V7h-1z"/></svg></span><div><b>Tournoi entre amis</b><small>5 000 jetons offerts · 15 mains · le meilleur gagne</small></div><em>›</em></button>
+      <button class="mode" data-mode="train"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="1" fill="currentColor"/></svg></span><div><b>Entraînement</b><small>Chaque coup est corrigé</small></div><em>›</em></button>
     </div>
     <p class="net" id="netStatus"><i></i>Connexion…</p>
   </section>
@@ -81,12 +82,14 @@
       <button class="backbtn" id="leave" aria-label="Quitter"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button>
       <div class="players" id="others"></div>
       <div class="tinfo" id="tMode"></div>
+      <button class="react-btn" id="reactBtn" hidden aria-label="Réactions"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M4 4h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H9l-5 4v-4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z"/></svg></button>
     </header>
     <div class="dealer">
       <div class="cards" id="dCards"></div>
       <div class="dtotal" id="dScore"></div>
     </div>
     <div id="msg"></div>
+    <div id="reactBar" hidden></div>
     <div class="mid"><div class="hands" id="pHands"></div></div>
     <div id="odds"></div>
     <div id="dock">
@@ -101,7 +104,7 @@
         <button class="pill white" data-a="S">Rester</button>
       </div>
       <div id="waitUI" class="wait"></div>
-      <div class="mebox"><span class="av" data-av></span><small id="meHand">Mise</small><b id="tBank">0</b></div>
+      <div class="mebox"><span class="bubble" id="meBubble" hidden></span><span class="av" data-av></span><small id="meHand">Mise</small><b id="tBank">0</b></div>
     </div>
   </section>
 </div>
