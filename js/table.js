@@ -12,7 +12,7 @@ const reacts = new Map();
 
 const NAMES = { H: 'Tirer', S: 'Rester', D: 'Doubler', P: 'Séparer' };
 let ctl = null, snap = null, pend = 0, lastBet = 0, applied = 0, sent = false, ticker = null, onExit = () => {};
-let oddsKey = '', onSettle = () => {};
+let onSettle = () => {};
 export const setOnSettle = fn => { onSettle = fn; };
 
 export const isPlaying = () => !!ctl;
@@ -126,7 +126,8 @@ function settle() {
   if (!me || (snap.phase !== 'bet' && snap.phase !== 'over') || me.net == null || snap.round <= applied) return;
   applied = snap.round;
   { const pot = $('#pot'), col = chipColor(Math.max(1, wagered(me)));
-    if (me.net > 0) fly(pot, $('#dock .mebox'), col); else if (me.net < 0) fly(pot, $('#dCards'), col); }
+    if (me.net > 0) fly(pot, $('#tBal'), col); else if (me.net < 0) fly(pot, $('#dCards'), col); }
+  resultUntil = Date.now() + 1700; setTimeout(() => { if (ctl) render(); }, 1750);
   if (!snap.tour) {
     profile.bank += me.net;
     const wk = weekKey(); if (stats.week !== wk) { stats.week = wk; stats.weekNet = 0; }
@@ -194,6 +195,7 @@ function cardEl(c, key) {
   const red = c.s === '♥' || c.s === '♦';
   return `<div class="card${red ? ' red' : ''}${anim}"><div class="r">${c.r}</div><div class="s">${c.s}\uFE0E</div></div>`;
 }
+function sideTotal(h) { const { t, soft } = total(h.cards); return soft && t < 21 && !h.done ? `${t - 10}/${t}` : t; }
 function handLabel(h) {
   const { t, soft } = total(h.cards);
   if (!h.cards.length) return '';
@@ -226,15 +228,15 @@ function render() {
     ph.classList.toggle('multi', me.hands.length > 1);
     ph.innerHTML = me.hands.map((h, i) => `<div class="hand${(turnId === me.id && i === me.cur) || s.phase !== 'play' ? ' active' : ''}">
       <div class="cards">${h.cards.map((c, j) => cardEl(c, 'me' + i + ':' + j)).join('')}</div>
-      <div class="info"><span class="tot">${handLabel(h)}</span>${tag(h)}</div></div>`).join('');
+      <div class="side"><b class="tot${total(h.cards).t > 21 ? ' bust' : isBJ(h) ? ' bj' : ''}">${isBJ(h) ? 'BJ' : sideTotal(h)}</b>${tag(h)}</div></div>`).join('');
   }
   const mb = $('#meBubble'), r = bubble(ctl.myId);
   mb.hidden = !r; if (r) mb.textContent = reacts.get(ctl.myId).text;
   renderControls();
 }
 
-// ---------- Case du joueur : chances de victoire pendant la main, solde sinon ----------
-let oddsCache = { key: '', o: null };
+// ---------- Solde en haut + chances de victoire sous la main ----------
+let oddsCache = { key: '', o: null }, resultUntil = 0;
 function curOdds(me) {
   if (!snap || !me || !me.hands.length || !snap.dealer.length || !['play', 'dealer'].includes(snap.phase)) return null;
   const turnId = snap.phase === 'play' && snap.seats[snap.turn] ? snap.seats[snap.turn].id : null;
@@ -250,16 +252,14 @@ function curOdds(me) {
 }
 function renderMe() {
   const me = mySeat();
-  const set = (a, b, c, d, cls = '') => { $('#mbL1').textContent = a; const v = $('#mbV1'); v.textContent = b; v.className = cls; $('#mbL2').textContent = c; $('#mbV2').textContent = d; };
-  if (!snap || !me) return set('Solde', fmt(avail()), 'Mise', '0');
-  const o = settings.odds ? curOdds(me) : null;
-  if (o) return set('Victoire', o.w + '%', 'Égalité', o.p + '%', o.w < 25 ? 'lo' : o.w >= 50 ? 'hi' : '');
-  if (snap.phase === 'bet' || snap.phase === 'lobby') return set('Solde', fmt(displayBank()), 'Mise', fmt(me.ready ? me.bet : pend));
-  set('Solde', fmt(displayBank()), 'En jeu', me.out ? '0' : fmt(wagered(me)));
+  $('#tBal').textContent = fmt(snap && me ? displayBank() : avail());
+  const o = settings.odds && me ? curOdds(me) : null, el = $('#oddsLine');
+  el.innerHTML = o ? `Victoire <b class="${o.w < 25 ? 'lo' : ''}">${o.w}%</b><i></i>Égalité <b>${o.p}%</b>` : '';
 }
 
 // ---------- Jetons au centre de la table ----------
 const CHIP_COLORS = ['#f5f5f7', '#ff453a', '#64d2ff', '#bf5af2'];
+const short = v => v >= 1e6 ? (v / 1e6).toLocaleString('fr-FR', { maximumFractionDigits: 1 }) + 'M' : v >= 1000 ? (v / 1000).toLocaleString('fr-FR', { maximumFractionDigits: 1 }) + 'k' : String(v);
 const chipColor = amount => { const c = stake().chips; let k = 0; c.forEach((v, i) => { if (amount >= v) k = i; }); return CHIP_COLORS[k]; };
 let potShown = 0;
 function renderPot() {
@@ -268,7 +268,7 @@ function renderPot() {
   const amount = snap.phase === 'bet' || snap.phase === 'lobby' ? (me.ready ? me.bet : pend) : snap.phase === 'over' || me.out ? 0 : wagered(me);
   if (amount === potShown) return;
   potShown = amount;
-  el.innerHTML = amount ? `<span class="potchip" style="--c:${chipColor(amount)}"></span><b>${fmt(amount)}</b>` : '';
+  el.innerHTML = amount ? `<span class="potchip${chipColor(amount) === CHIP_COLORS[0] ? ' light' : ''}" style="--c:${chipColor(amount)}"><b>${short(amount)}</b></span>` : '';
   if (amount) { el.classList.remove('bump'); void el.offsetWidth; el.classList.add('bump'); }
 }
 // Un jeton qui vole d'un élément à un autre
@@ -276,7 +276,7 @@ function fly(from, to, color) {
   if (!from || !to) return;
   const a = from.getBoundingClientRect(), b = to.getBoundingClientRect();
   const d = document.createElement('span');
-  d.className = 'flychip'; d.style.setProperty('--c', color);
+  d.className = 'flychip' + (color === CHIP_COLORS[0] ? ' light' : ''); d.style.setProperty('--c', color);
   d.style.left = (a.left + a.width / 2 - 20) + 'px'; d.style.top = (a.top + a.height / 2 - 20) + 'px';
   document.body.appendChild(d);
   const dx = b.left + b.width / 2 - (a.left + a.width / 2), dy = b.top + b.height / 2 - (a.top + a.height / 2);
@@ -287,7 +287,7 @@ function fly(from, to, color) {
 
 function renderControls() {
   const s = snap, me = mySeat(), lv = stake();
-  const show = id => ['#betUI', '#playUI', '#waitUI'].forEach(x => $(x).hidden = x !== id);
+  const show = id => { ['#betAct', '#playUI', '#waitUI'].forEach(x => $(x).hidden = x !== id); const bet = id === '#betAct'; $('#betUI').hidden = !bet; $('#pHands').hidden = bet; };
   const secs = s && s.deadline ? Math.max(0, Math.ceil((s.deadline - Date.now()) / 1000)) : 0;
   const wait = html => { show('#waitUI'); $('#waitUI').innerHTML = html; };
   renderMe(); renderPot();
@@ -304,12 +304,13 @@ function renderControls() {
   if (s.phase === 'bet') {
     if (me.ready) return wait(`Mise placée · en attente des joueurs${secs ? ` · ${secs}s` : ''}`);
     if (bank < lv.min) return wait(s.tour ? 'Éliminé · plus assez de jetons' : `Il te faut au moins ${fmt(lv.min)} jetons pour cette table`);
-    show('#betUI');
-    $('#chips').innerHTML = lv.chips.map(v => `<button class="chip" data-v="${v}" ${v > bank ? 'disabled' : ''}><i></i>${fmtShort(v)}</button>`).join('');
+    if (Date.now() < resultUntil) return wait('');
+    show('#betAct');
+    $('#chips').innerHTML = lv.chips.map((v, k) => `<button class="chip${k ? '' : ' light'}" style="--c:${CHIP_COLORS[k]}" data-v="${v}" ${v > bank ? 'disabled' : ''}><b>${fmtShort(v)}</b></button>`).join('');
     $$('#chips .chip').forEach(c => c.onclick = e => addBet(+c.dataset.v, e.currentTarget));
     const ok = pend >= lv.min;
     $('#deal').disabled = !ok;
-    $('#deal').textContent = !pend ? `Min ${fmtShort(lv.min)}` : alone ? 'Distribuer' : (secs ? `Miser · ${secs}s` : 'Miser');
+    $('#deal').querySelector('.rl').textContent = pend < lv.min ? `Min ${fmtShort(lv.min)}` : alone ? 'Distribuer' : (secs ? `Miser · ${secs}s` : 'Miser');
     $('#rebet').disabled = !lastBet || lastBet > bank;
     $('#clearBet').disabled = !pend;
     return;
@@ -319,7 +320,7 @@ function renderControls() {
     show('#playUI');
     const can = { H: true, S: true, D: canDouble(h, me), P: canSplit(h, me) };
     const rec = best(h, s.dealer[0], can.D, can.P);
-    $$('[data-a]').forEach(b => { b.disabled = !can[b.dataset.a]; b.classList.toggle('hint', settings.hints && b.dataset.a === rec); });
+    $$('[data-a]').forEach(b => { b.hidden = !can[b.dataset.a]; b.classList.toggle('hint', settings.hints && b.dataset.a === rec); });
     return;
   }
   if (me.out) return wait('Tu joues à la prochaine main');
@@ -398,5 +399,4 @@ function showStats(seat) {
     <small class="muted">${mine && h && h.cards.length >= 2 && !h.res ? 'Ta main en cours' : mine ? 'Toi' : 'Niveau ' + (pub.lvl || 1)} · ${snap.tour ? fmt(seat.tbank) + ' jetons de tournoi' : mine ? fmt(profile.bank) + ' jetons' : ''}</small>
     <div class="sc-grid">${cells}</div></div>`);
 }
-$('#dock .mebox').addEventListener('click', () => showStats(mySeat()));
 $('#others').addEventListener('click', e => { const p = e.target.closest('[data-pid]'); if (p && snap) showStats(snap.seats.find(x => x.id === p.dataset.pid)); });
