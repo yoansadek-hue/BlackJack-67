@@ -3,391 +3,116 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-<meta name="theme-color" content="#0b0d10">
-<title>Blackjack 67</title>
-<style>
-:root{
-  --bg:#0b0d10; --surface:#14171c; --surface2:#1c2027; --line:#262b33;
-  --text:#f2f4f7; --muted:#8a93a0; --accent:#3ddc97; --accent-ink:#06281a;
-  --red:#ff5c6c; --gold:#ffc857; --blue:#5aa9ff;
-  --card:#fafafa; --card-red:#e0344a; --card-black:#15181d;
-  --radius:18px;
-}
-*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
-html,body{margin:0;height:100%;background:var(--bg);color:var(--text);
-  font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Inter","Segoe UI",Roboto,sans-serif;user-select:none;overflow:hidden}
-button{font:inherit;color:inherit;border:0;background:none;cursor:pointer}
-#app{max-width:520px;margin:0 auto;height:100dvh;display:flex;flex-direction:column;padding:env(safe-area-inset-top) 16px calc(env(safe-area-inset-bottom) + 12px)}
-header{display:flex;align-items:center;justify-content:space-between;padding:14px 0 8px}
-.logo{font-weight:800;letter-spacing:-.02em;font-size:20px}
-.logo span{color:var(--accent)}
-.pill{background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:7px 12px;font-weight:700;font-size:14px;display:flex;gap:6px;align-items:center}
-.pill .dot{width:8px;height:8px;border-radius:50%;background:var(--gold)}
-.iconbtn{width:38px;height:38px;border-radius:12px;background:var(--surface);border:1px solid var(--line);display:grid;place-items:center}
-.iconbtn svg{width:18px;height:18px;stroke:var(--text);fill:none;stroke-width:2;stroke-linecap:round}
-.hrow{display:flex;gap:8px;align-items:center}
-
-#table{flex:1;display:flex;flex-direction:column;justify-content:space-between;padding:8px 0;min-height:0}
-.zone{display:flex;flex-direction:column;align-items:center;gap:8px}
-.label{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.12em;font-weight:700;display:flex;gap:8px;align-items:center}
-.score{background:var(--surface2);color:var(--text);border-radius:8px;padding:2px 8px;font-size:13px;letter-spacing:0}
-.score.bust{background:var(--red);color:#fff}.score.bj{background:var(--gold);color:#2a1d00}
-.hands{display:flex;gap:14px;justify-content:center;flex-wrap:wrap;width:100%}
-.hand{display:flex;flex-direction:column;align-items:center;gap:8px;padding:8px;border-radius:16px;border:1px solid transparent;transition:.2s}
-.hand.active{border-color:var(--accent);background:rgba(61,220,151,.06)}
-.cards{display:flex;height:calc(var(--cw)*1.4);--cw:min(19vw,82px)}
-.hands.multi .cards{--cw:min(14vw,62px)}
-.card{width:var(--cw);height:calc(var(--cw)*1.4);border-radius:calc(var(--cw)*.12);background:var(--card);color:var(--card-black);
-  margin-left:calc(var(--cw)*-.55);position:relative;box-shadow:0 6px 18px rgba(0,0,0,.45);animation:deal .28s ease-out both;
-  display:flex;flex-direction:column;justify-content:space-between;padding:calc(var(--cw)*.08)}
-.card:first-child{margin-left:0}
-.card.red{color:var(--card-red)}
-.card .r{font-weight:800;font-size:calc(var(--cw)*.3);line-height:1}
-.card .s{font-size:calc(var(--cw)*.24);line-height:1}
-.card .big{position:absolute;inset:0;display:grid;place-items:center;font-size:calc(var(--cw)*.55)}
-.card .br{align-self:flex-end;transform:rotate(180deg);text-align:center}
-.card.back{background:linear-gradient(135deg,#1f6f53,#0e3b2c);border:3px solid var(--card)}
-.card.back::after{content:"";position:absolute;inset:6px;border-radius:6px;border:1.5px solid rgba(255,255,255,.25);
-  background:repeating-linear-gradient(45deg,rgba(255,255,255,.06) 0 4px,transparent 4px 8px)}
-@keyframes deal{from{transform:translateY(-30px) scale(.9);opacity:0}to{transform:none;opacity:1}}
-.betchip{font-size:12px;font-weight:700;color:var(--gold)}
-.result{font-size:12px;font-weight:800;padding:3px 9px;border-radius:999px}
-.result.win{background:var(--accent);color:var(--accent-ink)}.result.lose{background:var(--red);color:#fff}.result.push{background:var(--surface2)}
-
-#msg{min-height:44px;display:flex;align-items:center;justify-content:center}
-.toast{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:10px 14px;font-size:14px;font-weight:600;display:flex;gap:8px;align-items:center;animation:pop .2s ease-out}
-.toast.ok{border-color:rgba(61,220,151,.5)}.toast.ok b{color:var(--accent)}
-.toast.bad{border-color:rgba(255,92,108,.5)}.toast.bad b{color:var(--red)}
-@keyframes pop{from{transform:scale(.95);opacity:0}}
-
-#controls{background:var(--surface);border:1px solid var(--line);border-radius:24px;padding:14px}
-.betline{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
-.betline .amt{font-size:28px;font-weight:800;letter-spacing:-.02em}
-.betline small{color:var(--muted);font-size:12px;font-weight:600;display:block}
-.chips{display:flex;gap:8px;justify-content:space-between;margin-bottom:12px}
-.chip{flex:1;aspect-ratio:1;max-width:64px;border-radius:50%;font-weight:800;font-size:14px;display:grid;place-items:center;
-  border:3px dashed rgba(255,255,255,.55);box-shadow:inset 0 0 0 4px rgba(0,0,0,.18),0 4px 10px rgba(0,0,0,.4);transition:transform .1s}
-.chip:active{transform:scale(.92)}
-.c1{background:#e9edf2;color:#222}.c5{background:#e0344a}.c25{background:#1f9d6b}.c100{background:#20242b}.c500{background:#7b4dff}
-.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
-.grid.four{grid-template-columns:repeat(4,1fr)}
-.btn{height:52px;border-radius:14px;background:var(--surface2);font-weight:700;font-size:15px;border:1px solid var(--line);transition:transform .08s,opacity .2s}
-.btn:active{transform:scale(.97)}
-.btn:disabled{opacity:.3;pointer-events:none}
-.btn.primary{background:var(--accent);color:var(--accent-ink);border:0}
-.btn.hint{outline:2px solid var(--gold);outline-offset:-2px}
-.btn .k{display:block;font-size:10px;color:var(--muted);font-weight:600;margin-top:1px}
-.btn.primary .k{color:rgba(6,40,26,.6)}
-.hidden{display:none!important}
-
-.sheet-bg{position:fixed;inset:0;background:rgba(0,0,0,.55);display:flex;align-items:flex-end;justify-content:center;z-index:10;animation:fade .2s}
-@keyframes fade{from{opacity:0}}
-.sheet{background:var(--surface);border:1px solid var(--line);border-radius:24px 24px 0 0;width:100%;max-width:520px;padding:20px 16px calc(env(safe-area-inset-bottom) + 20px);max-height:85dvh;overflow:auto;animation:up .25s ease-out}
-@keyframes up{from{transform:translateY(40px)}}
-.sheet h2{margin:0 0 14px;font-size:20px}
-.stats{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:16px}
-.stat{background:var(--surface2);border-radius:14px;padding:12px}
-.stat b{font-size:22px;display:block}.stat span{font-size:12px;color:var(--muted);font-weight:600}
-.row{display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid var(--line);font-weight:600}
-.row small{display:block;color:var(--muted);font-weight:500;font-size:12px}
-.switch{width:46px;height:28px;border-radius:999px;background:var(--surface2);border:1px solid var(--line);position:relative;transition:.2s;flex:none}
-.switch::after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:var(--muted);transition:.2s}
-.switch.on{background:var(--accent)}.switch.on::after{left:21px;background:#fff}
-.sheet .btn{width:100%;margin-top:14px}
-@media (min-height:820px){.cards{--cw:min(19vw,92px)}}
-</style>
+<meta name="theme-color" content="#0a0b0d">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Blackoff</title>
+<link rel="stylesheet" href="css/style.css">
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js" defer></script>
+<script type="module" src="js/app.js"></script>
 </head>
-<body>
+<body data-theme="emerald" data-back="classic">
 <div id="app">
-  <header>
-    <div class="logo">Blackjack<span>67</span></div>
-    <div class="hrow">
-      <div class="pill"><span class="dot"></span><span id="bank">1 000</span></div>
-      <button class="iconbtn" id="openStats" aria-label="Statistiques"><svg viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg></button>
-      <button class="iconbtn" id="openSettings" aria-label="Réglages"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
-    </div>
-  </header>
 
-  <main id="table">
-    <section class="zone">
-      <div class="label">Croupier <span class="score" id="dScore">–</span></div>
-      <div class="hands"><div class="hand"><div class="cards" id="dCards"></div></div></div>
-    </section>
-    <div id="msg"></div>
-    <section class="zone">
-      <div class="hands" id="pHands"></div>
-      <div class="label">Vous</div>
-    </section>
-  </main>
-
-  <section id="controls">
-    <div id="betUI">
-      <div class="betline">
-        <div><small>Mise</small><div class="amt" id="betAmt">0</div></div>
-        <button class="btn" style="height:38px;padding:0 14px" id="clearBet">Effacer</button>
-      </div>
-      <div class="chips">
-        <button class="chip c1" data-v="1">1</button><button class="chip c5" data-v="5">5</button>
-        <button class="chip c25" data-v="25">25</button><button class="chip c100" data-v="100">100</button>
-        <button class="chip c500" data-v="500">500</button>
-      </div>
-      <div class="grid">
-        <button class="btn" id="rebet">Remiser</button>
-        <button class="btn primary" id="deal">Distribuer</button>
-      </div>
+  <!-- Accueil -->
+  <section class="screen on" id="s-home">
+    <header class="top"><div class="logo">black<b>off</b></div><div class="bal"><i></i><span data-bank>1 000</span></div></header>
+    <div id="bonus"></div>
+    <button class="mode hero" data-mode="solo">
+      <div><small>Solo</small><b>Partie classique</b><span>Toi contre le croupier</span></div><em>→</em>
+    </button>
+    <div class="modes">
+      <button class="mode" data-mode="train"><small>Solo</small><b>Entraînement</b><span>Apprends la stratégie de base</span></button>
+      <button class="mode" data-mode="quick"><small>En ligne</small><b>Partie rapide</b><span>Contre un joueur au hasard</span></button>
+      <button class="mode wide" data-mode="friends"><small>En ligne</small><b>Avec des amis</b><span>Crée un salon ou rejoins un code · jusqu'à 4 joueurs</span></button>
     </div>
-    <div id="playUI" class="hidden">
-      <div class="grid four">
-        <button class="btn" data-a="H">Tirer<span class="k">H</span></button>
-        <button class="btn" data-a="S">Rester<span class="k">S</span></button>
-        <button class="btn" data-a="D">Doubler<span class="k">D</span></button>
-        <button class="btn" data-a="P">Séparer<span class="k">P</span></button>
+    <p class="net" id="netStatus"><i></i>Connexion…</p>
+  </section>
+
+  <!-- Boutique -->
+  <section class="screen" id="s-shop">
+    <header class="top"><h1>Boutique</h1><div class="bal"><i></i><span data-bank>1 000</span></div></header>
+    <div id="shop"></div>
+  </section>
+
+  <!-- Amis -->
+  <section class="screen" id="s-friends">
+    <header class="top"><h1>Amis</h1></header>
+    <div class="panel">
+      <small class="cap">Ton code ami</small>
+      <button class="bigcode" id="copyCode" data-code>——————</button>
+      <form class="addf" id="addFriend">
+        <input id="friendCode" maxlength="6" placeholder="Code d'un ami" autocomplete="off" autocapitalize="characters">
+        <button class="btn primary">Ajouter</button>
+      </form>
+    </div>
+    <div id="friendList"></div>
+  </section>
+
+  <!-- Profil -->
+  <section class="screen" id="s-profile">
+    <header class="top"><h1>Profil</h1><div class="bal"><i></i><span data-bank>1 000</span></div></header>
+    <div id="profile"></div>
+  </section>
+
+  <!-- Réglages -->
+  <section class="screen" id="s-settings">
+    <header class="top"><h1>Réglages</h1></header>
+    <div id="settings"></div>
+  </section>
+
+  <!-- Table -->
+  <section class="screen" id="s-table">
+    <header class="top">
+      <button class="iconbtn" id="leave" aria-label="Quitter"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button>
+      <div class="tmode" id="tMode">Solo</div>
+      <div class="bal"><i></i><span id="tBank">1 000</span></div>
+    </header>
+    <div id="felt">
+      <div class="zone">
+        <div class="label">Croupier <span class="score" id="dScore">–</span></div>
+        <div class="cards" id="dCards"></div>
       </div>
+      <div id="msg"></div>
+      <div id="others"></div>
+      <div class="zone"><div class="hands" id="pHands"></div></div>
+    </div>
+    <div id="controls">
+      <div id="betUI">
+        <div class="betline">
+          <div><small>Mise</small><div class="amt" id="betAmt">0</div></div>
+          <button class="btn sm" id="clearBet">Effacer</button>
+        </div>
+        <div class="chips">
+          <button class="chip c1" data-v="1">1</button><button class="chip c5" data-v="5">5</button>
+          <button class="chip c25" data-v="25">25</button><button class="chip c100" data-v="100">100</button>
+          <button class="chip c500" data-v="500">500</button>
+        </div>
+        <div class="grid">
+          <button class="btn" id="rebet">Remiser</button>
+          <button class="btn primary" id="deal">Distribuer</button>
+        </div>
+      </div>
+      <div id="playUI" class="grid four">
+        <button class="btn" data-a="H">Tirer</button>
+        <button class="btn" data-a="S">Rester</button>
+        <button class="btn" data-a="D">Doubler</button>
+        <button class="btn" data-a="P">Séparer</button>
+      </div>
+      <div id="waitUI" class="wait"></div>
     </div>
   </section>
 </div>
 
-<div id="sheet" class="sheet-bg hidden"><div class="sheet" id="sheetBody"></div></div>
+<nav class="tabbar" id="tabbar">
+  <span class="tabpill" id="tabPill" aria-hidden="true"><i></i></span>
+  <button class="tab" data-go="s-shop"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M7 7V6a5 5 0 0 1 10 0v1h3l-1.2 13.2A2 2 0 0 1 16.8 22H7.2a2 2 0 0 1-2-1.8L4 7h3zm2 0h6V6a3 3 0 0 0-6 0v1z"/></svg><span>Boutique</span></button>
+  <button class="tab" data-go="s-friends"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm0 2c-3.3 0-7 1.7-7 4.5V20h14v-2.5C16 14.7 12.3 13 9 13zm8-2a3.5 3.5 0 1 0-2.1-6.3 5.9 5.9 0 0 1 0 5.6A3.5 3.5 0 0 0 17 11zm1.2 2.1c1.6 1 2.8 2.5 2.8 4.4V20h3v-2.5c0-2.1-2.6-3.8-5.8-4.4z"/></svg><span>Amis</span><b class="nbadge" id="friendBadge" hidden></b></button>
+  <button class="tab" data-go="s-home"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M12 2c3 3.6 8 7 8 11.2A4.3 4.3 0 0 1 15.7 17.5c-1.2 0-2.2-.5-2.9-1.3.3 2 1 3.6 2.2 4.8H9c1.2-1.2 1.9-2.8 2.2-4.8-.7.8-1.7 1.3-2.9 1.3A4.3 4.3 0 0 1 4 13.2C4 9 9 5.6 12 2z"/></svg><span>Jouer</span></button>
+  <button class="tab" data-go="s-profile"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M12 12a5 5 0 1 0 0-10 5 5 0 0 0 0 10zm0 2c-4.4 0-9 2.2-9 5.5V22h18v-2.5C21 16.2 16.4 14 12 14z"/></svg><span>Profil</span></button>
+  <button class="tab" data-go="s-settings"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M19.14 12.94c.04-.3.06-.61.06-.94s-.02-.64-.07-.94l2.03-1.58a.49.49 0 0 0 .12-.61l-1.92-3.32a.49.49 0 0 0-.59-.22l-2.39.96a7.03 7.03 0 0 0-1.62-.94l-.36-2.54a.48.48 0 0 0-.48-.41h-3.84a.47.47 0 0 0-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96a.49.49 0 0 0-.59.22L2.74 8.87a.48.48 0 0 0 .12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58a.49.49 0 0 0-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32a.48.48 0 0 0-.12-.61l-2.01-1.58zM12 15.6A3.6 3.6 0 1 1 12 8.4a3.6 3.6 0 0 1 0 7.2z"/></svg><span>Réglages</span></button>
+</nav>
 
-<script>
-(() => {
-const $ = s => document.querySelector(s);
-const SUITS = ['♠','♥','♦','♣'], RANKS = ['A','2','3','4','5','6','7','8','9','10','J','Q','K'];
-const fmt = n => Math.round(n).toLocaleString('fr-FR');
-const store = {
-  get(k, d){ try{ const v = localStorage.getItem('bj67_'+k); return v==null?d:JSON.parse(v);}catch(e){return d;} },
-  set(k, v){ try{ localStorage.setItem('bj67_'+k, JSON.stringify(v)); }catch(e){} }
-};
-
-let bank = store.get('bank', 1000);
-let stats = store.get('stats', {hands:0,won:0,lost:0,push:0,bj:0,dec:0,good:0,best:1000,streak:0,bestStreak:0});
-let settings = store.get('settings', {trainer:true, hints:false, decks:6, sound:true});
-let shoe = [], bet = 0, lastBet = 0, dealer = [], hands = [], cur = 0, phase = 'bet', hideHole = true;
-
-function newShoe(){
-  shoe = [];
-  for(let d=0; d<settings.decks; d++) for(const s of SUITS) for(const r of RANKS) shoe.push({r,s});
-  for(let i=shoe.length-1;i>0;i--){ const j=Math.random()*(i+1)|0; [shoe[i],shoe[j]]=[shoe[j],shoe[i]]; }
-}
-const draw = () => { if(shoe.length < 20) newShoe(); return shoe.pop(); };
-const val = c => c.r==='A'?11:(['J','Q','K'].includes(c.r)?10:+c.r);
-function total(cards){
-  let t=0, a=0; for(const c of cards){ t+=val(c); if(c.r==='A') a++; }
-  while(t>21 && a){ t-=10; a--; }
-  return {t, soft: a>0};
-}
-const isBJ = h => h.cards.length===2 && total(h.cards).t===21 && !h.split;
-
-// ---- Stratégie de base (6 jeux, croupier reste sur 17, double après split)
-function best(h, up){
-  const c = h.cards, u = val(up)===11 ? 11 : val(up), {t, soft} = total(c);
-  const two = c.length===2, canD = two && bank >= h.bet, canP = two && val(c[0])===val(c[1]) && hands.length<4 && bank>=h.bet;
-  const D = (alt) => canD ? 'D' : alt;
-  if(canP){
-    const p = val(c[0]);
-    const split =
-      p===11 || p===8 ||
-      ((p===2||p===3||p===7) && u<=7) ||
-      (p===4 && (u===5||u===6)) ||
-      (p===6 && u<=6) ||
-      (p===9 && u!==7 && u!==10 && u!==11);
-    if(split) return 'P';
-  }
-  if(soft && t<=21 && t>=13){
-    if(t>=19) return 'S';
-    if(t===18) return (u>=3&&u<=6) ? D('S') : (u<=8 ? 'S' : 'H');
-    if(t===17) return (u>=3&&u<=6) ? D('H') : 'H';
-    if(t>=15) return (u>=4&&u<=6) ? D('H') : 'H';
-    return (u===5||u===6) ? D('H') : 'H';
-  }
-  if(t>=17) return 'S';
-  if(t>=13) return u<=6 ? 'S' : 'H';
-  if(t===12) return (u>=4&&u<=6) ? 'S' : 'H';
-  if(t===11) return u<=10 ? D('H') : 'H';
-  if(t===10) return u<=9 ? D('H') : 'H';
-  if(t===9) return (u>=3&&u<=6) ? D('H') : 'H';
-  return 'H';
-}
-const NAMES = {H:'Tirer',S:'Rester',D:'Doubler',P:'Séparer'};
-
-// ---- Son
-let actx;
-function beep(f=520, d=.06, type='sine', g=.05){
-  if(!settings.sound) return;
-  try{ actx = actx || new (window.AudioContext||window.webkitAudioContext)();
-    const o=actx.createOscillator(), v=actx.createGain(); o.type=type; o.frequency.value=f; v.gain.value=g;
-    o.connect(v); v.connect(actx.destination); o.start(); v.gain.exponentialRampToValueAtTime(.0001, actx.currentTime+d); o.stop(actx.currentTime+d);
-  }catch(e){}
-}
-const vib = ms => { try{ navigator.vibrate && navigator.vibrate(ms); }catch(e){} };
-
-// ---- Rendu
-function cardEl(c, hidden){
-  const e = document.createElement('div');
-  if(hidden){ e.className='card back'; return e; }
-  const red = c.s==='♥'||c.s==='♦';
-  e.className = 'card'+(red?' red':'');
-  e.innerHTML = `<div><div class="r">${c.r}</div><div class="s">${c.s}</div></div><div class="big">${c.s}</div><div class="br"><div class="r">${c.r}</div></div>`;
-  return e;
-}
-function scoreTxt(cards){ const {t,soft}=total(cards); return (soft && t<21 && cards.length) ? `${t-10}/${t}` : t; }
-function render(){
-  $('#bank').textContent = fmt(bank);
-  $('#betAmt').textContent = fmt(bet);
-  const dc = $('#dCards'); dc.innerHTML='';
-  dealer.forEach((c,i)=>dc.appendChild(cardEl(c, i===1 && hideHole)));
-  const ds = $('#dScore');
-  if(!dealer.length){ ds.textContent='–'; ds.className='score'; }
-  else if(hideHole){ ds.textContent = val(dealer[0]); ds.className='score'; }
-  else { const t=total(dealer).t; ds.textContent = (dealer.length===2&&t===21)?'BJ':t; ds.className='score'+(t>21?' bust':(dealer.length===2&&t===21?' bj':'')); }
-
-  const ph = $('#pHands'); ph.innerHTML=''; ph.classList.toggle('multi', hands.length>1);
-  hands.forEach((h,i)=>{
-    const w = document.createElement('div'); w.className='hand'+(phase==='play'&&i===cur&&hands.length>1?' active':'');
-    const cs = document.createElement('div'); cs.className='cards'; h.cards.forEach(c=>cs.appendChild(cardEl(c)));
-    const t = total(h.cards).t;
-    const info = document.createElement('div'); info.className='label';
-    info.innerHTML = `<span class="score${t>21?' bust':(isBJ(h)?' bj':'')}">${isBJ(h)?'BJ':scoreTxt(h.cards)}</span><span class="betchip">● ${fmt(h.bet)}</span>`+
-      (h.res?`<span class="result ${h.res}">${h.res==='win'?'+'+fmt(h.gain):h.res==='lose'?'−'+fmt(h.bet):'Égalité'}</span>`:'');
-    w.append(cs, info); ph.appendChild(w);
-  });
-
-  $('#betUI').classList.toggle('hidden', phase!=='bet');
-  $('#playUI').classList.toggle('hidden', phase!=='play');
-  $('#deal').disabled = bet<=0;
-  $('#rebet').disabled = !lastBet || lastBet > bank + bet;
-  $('#rebet').textContent = lastBet ? `Remiser ${fmt(lastBet)}` : 'Remiser';
-  if(phase==='play'){
-    const h = hands[cur], two = h.cards.length===2;
-    const can = {H:true, S:true, D: two && bank>=h.bet, P: two && val(h.cards[0])===val(h.cards[1]) && hands.length<4 && bank>=h.bet};
-    const rec = best(h, dealer[0]);
-    document.querySelectorAll('[data-a]').forEach(b=>{
-      b.disabled = !can[b.dataset.a];
-      b.classList.toggle('hint', settings.hints && b.dataset.a===rec);
-    });
-  }
-}
-function toast(html, cls=''){ $('#msg').innerHTML = html ? `<div class="toast ${cls}">${html}</div>` : ''; }
-const save = () => { store.set('bank', bank); store.set('stats', stats); store.set('settings', settings); };
-const wait = ms => new Promise(r=>setTimeout(r, ms));
-
-// ---- Jeu
-function addBet(v){
-  if(phase!=='bet') return;
-  if(bet+v > bank){ toast('Solde insuffisant','bad'); vib(30); return; }
-  bet += v; beep(700,.04); toast(''); render();
-}
-async function deal(){
-  if(bet<=0 || phase!=='bet') return;
-  bank -= bet; lastBet = bet; toast('');
-  hands = [{cards:[], bet, done:false}]; dealer = []; cur = 0; hideHole = true; phase='dealing'; bet = 0;
-  for(const who of ['p','d','p','d']){
-    (who==='p'?hands[0].cards:dealer).push(draw()); beep(420,.05,'triangle'); render(); await wait(220);
-  }
-  const pBJ = isBJ(hands[0]), dBJ = total(dealer).t===21;
-  if(pBJ || dBJ) return finish();
-  phase='play'; render();
-}
-async function act(a){
-  if(phase!=='play') return;
-  const h = hands[cur], rec = best(h, dealer[0]);
-  if(settings.trainer){
-    stats.dec++;
-    if(a===rec){ stats.good++; toast(`<b>✓ Correct</b> ${NAMES[a]}`,'ok'); }
-    else { toast(`<b>✗ Erreur</b> la bonne décision était <b>${NAMES[rec]}</b>`,'bad'); vib(40); }
-  }
-  phase='busy';
-  if(a==='H'){ h.cards.push(draw()); beep(420,.05,'triangle'); if(total(h.cards).t>=21) h.done=true; }
-  else if(a==='S'){ h.done=true; }
-  else if(a==='D'){ bank-=h.bet; h.bet*=2; h.cards.push(draw()); h.done=true; beep(420,.05,'triangle'); }
-  else if(a==='P'){
-    bank-=h.bet; const c2 = h.cards.pop();
-    const nh = {cards:[c2], bet:h.bet, split:true}; h.split = true;
-    hands.splice(cur+1, 0, nh);
-    h.cards.push(draw()); render(); await wait(220); nh.cards.push(draw());
-    if(h.cards[0].r==='A'){ h.done = nh.done = true; }
-  }
-  if(total(h.cards).t>=21) h.done = true;
-  render(); await wait(180);
-  while(cur < hands.length && hands[cur].done) cur++;
-  if(cur >= hands.length) return finish();
-  if(total(hands[cur].cards).t>=21){ hands[cur].done = true; return act2(); }
-  phase='play'; render();
-}
-async function act2(){ while(cur < hands.length && hands[cur].done) cur++; if(cur>=hands.length) return finish(); phase='play'; render(); }
-async function finish(){
-  phase='dealer'; hideHole=false; render(); await wait(450);
-  const live = hands.some(h=>total(h.cards).t<=21) && !(hands.length===1 && isBJ(hands[0]));
-  if(live){ while(total(dealer).t < 17){ dealer.push(draw()); beep(420,.05,'triangle'); render(); await wait(450); } }
-  const d = total(dealer).t, dBJ = dealer.length===2 && d===21;
-  let net = 0;
-  for(const h of hands){
-    const t = total(h.cards).t, bj = isBJ(h);
-    if(t>21) h.res='lose';
-    else if(bj && !dBJ){ h.res='win'; h.gain = h.bet*1.5; stats.bj++; }
-    else if(dBJ && !bj) h.res='lose';
-    else if(d>21 || t>d){ h.res='win'; h.gain=h.bet; }
-    else if(t===d) h.res='push';
-    else h.res='lose';
-    if(h.res==='win'){ bank += h.bet + h.gain; net += h.gain; stats.won++; stats.streak++; }
-    else if(h.res==='push'){ bank += h.bet; stats.push++; }
-    else { net -= h.bet; stats.lost++; stats.streak=0; }
-    stats.hands++; stats.bestStreak = Math.max(stats.bestStreak, stats.streak);
-  }
-  stats.best = Math.max(stats.best, bank);
-  phase='bet';
-  if(net>0){ toast(`<b>Gagné</b> +${fmt(net)}`,'ok'); beep(880,.12); beep(1320,.18); }
-  else if(net<0) toast(`<b>Perdu</b> −${fmt(-net)}`,'bad');
-  else toast('Égalité');
-  if(bank < 1 && lastBet){ toast('Plus de jetons — rechargé à 1 000','bad'); bank = 1000; }
-  if(lastBet > bank) lastBet = 0;
-  save(); render();
-}
-
-// ---- Feuilles
-function openSheet(html){ $('#sheetBody').innerHTML = html; $('#sheet').classList.remove('hidden'); }
-function closeSheet(){ $('#sheet').classList.add('hidden'); }
-$('#sheet').addEventListener('click', e=>{ if(e.target.id==='sheet' || e.target.dataset.close!==undefined) closeSheet(); });
-$('#openStats').onclick = () => {
-  const s=stats, acc = s.dec ? Math.round(100*s.good/s.dec) : 0, wr = s.hands ? Math.round(100*s.won/s.hands) : 0;
-  openSheet(`<h2>Statistiques</h2><div class="stats">
-    <div class="stat"><b>${acc}%</b><span>Précision stratégie</span></div>
-    <div class="stat"><b>${wr}%</b><span>Mains gagnées</span></div>
-    <div class="stat"><b>${fmt(s.hands)}</b><span>Mains jouées</span></div>
-    <div class="stat"><b>${fmt(s.bj)}</b><span>Blackjacks</span></div>
-    <div class="stat"><b>${fmt(s.best)}</b><span>Meilleur solde</span></div>
-    <div class="stat"><b>${s.bestStreak}</b><span>Meilleure série</span></div>
-  </div>
-  <button class="btn" id="resetStats">Réinitialiser</button><button class="btn primary" data-close>Fermer</button>`);
-  $('#resetStats').onclick = () => { stats={hands:0,won:0,lost:0,push:0,bj:0,dec:0,good:0,best:bank,streak:0,bestStreak:0}; save(); $('#openStats').onclick(); };
-};
-$('#openSettings').onclick = () => {
-  const sw = (k,t,d) => `<div class="row"><div>${t}<small>${d}</small></div><button class="switch ${settings[k]?'on':''}" data-k="${k}"></button></div>`;
-  openSheet(`<h2>Réglages</h2>
-    ${sw('trainer','Mode entraînement','Corrige chaque décision selon la stratégie de base')}
-    ${sw('hints','Afficher l’indice','Surligne le meilleur coup avant de jouer')}
-    ${sw('sound','Sons','Effets sonores des cartes et gains')}
-    <div class="row"><div>Règles<small>${settings.decks} jeux · Croupier reste sur 17 · BJ paie 3:2 · Double après split</small></div></div>
-    <button class="btn" id="resetBank">Remettre le solde à 1 000</button><button class="btn primary" data-close>Fermer</button>`);
-  document.querySelectorAll('.switch').forEach(b=>b.onclick=()=>{ settings[b.dataset.k]=!settings[b.dataset.k]; b.classList.toggle('on'); save(); render(); });
-  $('#resetBank').onclick = () => { if(phase==='bet'){ bank=1000; bet=0; lastBet=0; save(); render(); closeSheet(); } };
-};
-
-// ---- Entrées
-document.querySelectorAll('.chip').forEach(c=>c.onclick=()=>addBet(+c.dataset.v));
-$('#clearBet').onclick = () => { bet=0; render(); };
-$('#rebet').onclick = () => { if(lastBet && lastBet<=bank){ bet=lastBet; deal(); } };
-$('#deal').onclick = deal;
-document.querySelectorAll('[data-a]').forEach(b=>b.onclick=()=>act(b.dataset.a));
-document.addEventListener('keydown', e=>{
-  const k = e.key.toUpperCase();
-  if(phase==='play' && 'HSDP'.includes(k) && k.length===1){ const b=document.querySelector(`[data-a="${k}"]`); if(!b.disabled) act(k); }
-  else if(phase==='bet' && (k==='ENTER'||k===' ')){ e.preventDefault(); bet ? deal() : $('#rebet').click(); }
-  else if(k==='ESCAPE') closeSheet();
-});
-
-newShoe(); render();
-})();
-</script>
+<div id="sheet" class="sheet-bg" hidden><div class="sheet" id="sheetBody"></div></div>
+<div id="toasts"></div>
 </body>
 </html>
