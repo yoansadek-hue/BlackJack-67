@@ -26,9 +26,16 @@ export const settings = Object.assign({ sound: true, vibrate: true, hints: false
 
 export const friends = get('friends', []); // [{ code, name }]
 
-export function save() {
+let saveHook = null;
+export const onSave = fn => { saveHook = fn; };
+export const KEYS = ['profile', 'stats', 'settings', 'friends'];
+export const STORE_PREFIX = K;
+
+export function save(quiet) {
+  if (!quiet) profile.at = Date.now();
   stats.best = Math.max(stats.best, profile.bank);
   put('profile', profile); put('stats', stats); put('settings', settings); put('friends', friends);
+  if (!quiet && saveHook) saveHook();
   document.querySelectorAll('[data-bank]').forEach(e => e.textContent = Math.round(profile.bank).toLocaleString('fr-FR'));
 }
 
