@@ -461,3 +461,86 @@ body:not(.intable) #app::after{content:"";position:fixed;left:0;right:0;bottom:0
 .pl .nm{font-size:11px;font-weight:600;max-width:70px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .rank .nm{flex:1}
 @media (min-width:768px){.mcard{flex-basis:46%}.edgrid{grid-template-columns:repeat(6,1fr)}.shopgrid{grid-template-columns:repeat(5,1fr)}.shopgrid.wide{grid-template-columns:repeat(3,1fr)}}
+
+/* ===== v4 : sans jaune, grilles 2×2 plus grandes, boutique avec essayage ===== */
+:root{--gold:#e5e5ea}
+.coin{background:radial-gradient(circle at 35% 30%,#fff,#c7c7cc 55%,#6e6e73);box-shadow:0 0 0 2px rgba(255,255,255,.12)}
+.tag.bj{background:#fff;color:#000}.dtotal.bj{color:#fff}
+.pill.hint{box-shadow:0 0 0 2px #fff inset}
+.rk.r1{background:#fff;color:#000}.rk.r2{background:#a1a1a6;color:#000}.rk.r3{background:#5a5a60;color:#fff}
+.ach.t1 .tiers i.on{background:#8e8e93}.ach.t2 .tiers i.on{background:#c7c7cc}.ach.t3 .tiers i.on{background:#fff}.ach.t4 .tiers i.on{background:#64d2ff}
+.price.req{color:var(--muted)}
+/* tailles un peu plus grandes */
+html{font-size:17px}
+.h{font-size:15px;margin:24px 2px 12px}
+.stats{grid-template-columns:1fr 1fr;gap:10px}
+.stat{padding:18px;border-radius:22px}.stat b{font-size:30px}.stat span{font-size:13px}
+.achs{grid-template-columns:1fr 1fr;gap:10px}
+.ach{padding:16px;border-radius:22px}.ach b{font-size:16px}.ach small{font-size:13px}
+.brow{padding:12px 16px}.brow .av{width:44px;height:44px}.brow .who .nm{font-size:16px}.brow .sc{font-size:16px}
+.mode b,.mtx small{font-size:15px}
+/* profil épuré */
+.pcard{display:flex;flex-direction:column;align-items:center;gap:8px;padding:24px 16px 20px;background:var(--s1);border-radius:28px}
+.pav{margin:0;width:auto}.pav .av{box-shadow:none}
+.pname{font-size:26px;font-weight:800;letter-spacing:-.03em}
+.pmail{color:var(--muted);font-size:12px;margin:0}
+.lvl{max-width:300px;font-size:13px}
+.hint{color:var(--muted);font-size:13px;text-align:center;margin:6px 0 0}
+/* boutique */
+.seg{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;padding:4px;border-radius:16px;background:var(--s1);margin-bottom:14px}
+.seg button{height:42px;border-radius:12px;font-weight:600;font-size:14px;color:var(--muted)}
+.seg button.on{background:var(--s3);color:#fff}
+.tryon{display:flex;flex-direction:column;align-items:center;gap:6px;padding:22px 16px 16px;border-radius:28px;background:var(--s1);margin-bottom:14px;text-align:center}
+.tryon b{font-size:20px;margin-top:6px}.tryon small{color:var(--muted);font-size:13px;display:flex;gap:5px;align-items:center}
+.tryon .btn{margin-top:10px;max-width:360px}
+.trypv{min-height:132px;display:grid;place-items:center}
+.shopgrid,.shopgrid.wide{grid-template-columns:1fr 1fr;gap:10px}
+.sitem{padding:18px 10px;border-radius:22px;gap:10px}
+.sitem .av{width:72px;height:72px}
+.sitem b{font-size:15px}.sitem .price{font-size:13px}
+.sitem.sel{border-color:rgba(255,255,255,.55)}
+.sitem.eq{border-color:#fff}
+.price.eqd{color:#fff}.price.own{color:var(--muted)}
+.pvback{width:58px;height:80px;border-radius:11px}.pvback.big{width:92px;height:128px;border-radius:16px}
+.pvfelt{width:110px;height:76px;border-radius:16px;display:grid;place-items:center;box-shadow:inset 0 0 0 1px var(--line)}
+.pvfelt.big{width:220px;height:132px;border-radius:24px}
+.pvfelt .pvback{width:34px;height:48px;border-radius:7px}.pvfelt.big .pvback{width:58px;height:80px}
+.edgrid{grid-template-columns:1fr 1fr 1fr;gap:10px}
+.eopt{padding:12px 6px;border-radius:18px;gap:6px}.eopt .av{width:64px;height:64px}
+.eopt small{color:var(--muted);font-size:12px;font-weight:600}
+.eopt .pvback{width:44px;height:62px}.eopt .pvfelt{width:84px;height:58px}
+/* fiche de stats en jeu, 2×2 */
+.sc-grid{gap:10px}.sc-cell{padding:20px 10px;border-radius:24px}.sc-cell small{font-size:13px}.sc-cell b{font-size:36px}
+/* fonds de table */
+.pvfelt[data-felt=noir]{background:#000}
+.pvfelt[data-felt=graphite]{background:radial-gradient(80% 70% at 50% 40%,#2a2a2e,#0c0c0d 75%)}
+.pvfelt[data-felt=nuit]{background:radial-gradient(80% 70% at 50% 40%,#16204a,#05060c 75%)}
+.pvfelt[data-felt=bordeaux]{background:radial-gradient(80% 70% at 50% 40%,#4a0f1a,#0c0406 75%)}
+.pvfelt[data-felt=velours]{background:radial-gradient(80% 70% at 50% 40%,#2e1748,#07040c 75%)}
+.pvfelt[data-felt=marbre]{background:repeating-linear-gradient(115deg,rgba(255,255,255,.03) 0 2px,transparent 2px 22px),radial-gradient(80% 70% at 50% 40%,#3a3a3e,#0a0a0b 75%)}
+body[data-felt] #s-table{background:none}
+body[data-felt=graphite] #s-table{background:radial-gradient(80% 60% at 50% 40%,#2a2a2e,#000 75%)}
+body[data-felt=nuit] #s-table{background:radial-gradient(80% 60% at 50% 40%,#16204a,#000 75%)}
+body[data-felt=bordeaux] #s-table{background:radial-gradient(80% 60% at 50% 40%,#4a0f1a,#000 75%)}
+body[data-felt=velours] #s-table{background:radial-gradient(80% 60% at 50% 40%,#2e1748,#000 75%)}
+body[data-felt=marbre] #s-table{background:repeating-linear-gradient(115deg,rgba(255,255,255,.035) 0 2px,transparent 2px 22px),radial-gradient(80% 60% at 50% 40%,#3a3a3e,#000 75%)}
+/* table : un peu plus grand */
+.pl .av{width:50px;height:50px}.pl .nm{font-size:12px}
+.mebox .av{width:54px;height:54px}.mebox b{font-size:19px}
+.pill{min-height:54px;font-size:15px}
+.chip{height:54px;font-size:15px}
+/* iPad et ordinateur */
+@media (min-width:768px){
+  #app{max-width:760px}
+  .stats,.achs,.shopgrid,.shopgrid.wide,.sc-grid{grid-template-columns:1fr 1fr}
+  .stat b{font-size:36px}.sitem .av{width:88px;height:88px}
+  .edgrid{grid-template-columns:repeat(4,1fr)}
+  .mcard{flex-basis:60%;min-height:230px}.mtx b{font-size:30px}
+  .bigbank{font-size:72px}
+  .sheet{max-width:520px}
+  .tryon{flex-direction:column}
+}
+@media (min-width:1100px){
+  #app{max-width:820px}
+  .mcard{flex-basis:48%}
+}

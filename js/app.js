@@ -1,6 +1,6 @@
 // Application : navigation, barre d'onglets, accueil, boutique, amis, profil, réglages
 import { $, $$, fmt, esc, toast, sheet, closeSheet, sfx, vib } from './util.js';
-import { SHOP, AVATAR_CATS, SKIN_ITEMS, avHTML, paintAv, avatarSVG, nameHTML, myPub, cleanPub, owns, equipped, equip, ownKey, findItem, reqOf, level } from './cosmetics.js';
+import { SHOP_TABS, ALL_GROUPS, AVATAR_CATS, avHTML, paintAv, nameHTML, myPub, cleanPub, owns, equipped, equip, ownKey, reqOf, level } from './cosmetics.js';
 import { profile, stats, settings, friends, save, resetAll, ALPHA } from './store.js';
 import { STAKES } from './engine.js';
 import { checkAch, achHTML, ACH, TIERS } from './achievements.js';
@@ -9,7 +9,7 @@ import * as table from './table.js';
 import * as auth from './auth.js';
 
 // ---------- Apparence ----------
-function applyLook() { document.body.dataset.back = profile.back; $$('[data-av]').forEach(e => paintAv(e, myPub())); }
+function applyLook() { document.body.dataset.back = profile.back; document.body.dataset.felt = profile.cos.felt || 'noir'; $$('[data-av]').forEach(e => paintAv(e, myPub())); }
 
 // ---------- Navigation + barre d'onglets en verre ----------
 const bar = $('#tabbar'), pill = $('#tabPill'), TABS = $$('.tab');
@@ -51,14 +51,14 @@ const release = e => {
   bar.classList.remove('press', 'drag');
   TABS.forEach(t => t.classList.remove('over'));
   const i = tabAt(e.clientX); sfx.tap(); vib(8);
-  if (TABS[i].dataset.go === cur) placePill(i); else go(TABS[i].dataset.go);
+  if (TABS[i].dataset.go === cur) placePill(i); else { trial = null; go(TABS[i].dataset.go); }
 };
 bar.addEventListener('pointerup', release);
 bar.addEventListener('pointercancel', () => { dragging = false; bar.classList.remove('press', 'drag'); placePill(TABS.findIndex(t => t.dataset.go === cur)); });
 addEventListener('resize', () => placePill(TABS.findIndex(t => t.dataset.go === cur)));
 
 // ---------- Accueil : modes en carrousel, tables, classement ----------
-const STAKE_COLORS = ['#f5f5f7', '#64d2ff', '#bf5af2', '#ffd60a', '#ff453a'];
+const STAKE_COLORS = ['#f5f5f7', '#64d2ff', '#bf5af2', '#ff9f0a', '#ff453a'];
 const short = v => v >= 1000 ? (v / 1000).toLocaleString('fr-FR') + 'k' : String(v);
 const ICONS = {
   solo: '<path fill="currentColor" d="M12 2c3 3.6 8 7 8 11.2A4.3 4.3 0 0 1 15.7 17.5c-1.2 0-2.2-.5-2.9-1.3.3 2 1 3.6 2.2 4.8H9c1.2-1.2 1.9-2.8 2.2-4.8-.7.8-1.7 1.3-2.9 1.3A4.3 4.3 0 0 1 4 13.2C4 9 9 5.6 12 2z"/>',
@@ -71,7 +71,7 @@ const MODES = [
   { m: 'solo', name: 'Solo', sub: 'Toi contre le croupier', tint: '#f5f5f7', info: () => STAKES[profile.stake].name + ' · mise ' + short(STAKES[profile.stake].min) + '–' + short(STAKES[profile.stake].max) },
   { m: 'quick', name: 'Partie rapide', sub: 'Un joueur au hasard', tint: '#64d2ff', info: () => 'En ligne · table ' + STAKES[profile.stake].name },
   { m: 'friends', name: 'Avec des amis', sub: 'Ta table privée', tint: '#bf5af2', info: () => "Jusqu'à 4 joueurs · code " + profile.code },
-  { m: 'tour', name: 'Tournoi', sub: 'Entre amis, 15 mains', tint: '#ffd60a', info: () => '5 000 jetons offerts · 1 000 au gagnant' },
+  { m: 'tour', name: 'Tournoi', sub: 'Entre amis, 15 mains', tint: '#ff9f0a', info: () => '5 000 jetons offerts · 1 000 au gagnant' },
   { m: 'train', name: 'Entraînement', sub: 'Chaque coup est corrigé', tint: '#ff453a', info: () => 'Apprends la stratégie de base' },
 ];
 const unlocked = lv => profile.bank >= lv.need || lv.id === 0;
@@ -187,35 +187,46 @@ async function invite(code) {
 }
 const clean = s => String(s).toUpperCase().split('').filter(c => ALPHA.includes(c)).join('').slice(0, 6);
 
-// ---------- Boutique ----------
-let shopCat = 'hair';
-function previewOf(it) {
-  if (AVATAR_CATS.includes(it.cat) || it.cat === 'skin') return avHTML({ look: { ...profile.look, [it.cat]: it.id }, frame: profile.cos.frame }, profile.name);
-  if (it.cat === 'frame') return avHTML({ look: profile.look, frame: it.id }, profile.name);
-  if (it.cat === 'banner') return `<span class="pvban banner" data-b="${it.id}"></span>`;
-  if (it.cat === 'title') return `<span class="pvtitle">${esc(it.name)}</span>`;
-  if (it.cat === 'nc') return `<span class="pvname">${nameHTML(profile.name, { nc: it.id })}</span>`;
-  return `<span class="pvback ${it.id}"></span>`;
+// ---------- Boutique : 3 onglets, on essaie avant d'acheter ----------
+let shopTab = 'avatar', shopCat = 'hair', trial = null; // trial = objet essayé (pas encore équipé)
+const lookWith = it => it && (AVATAR_CATS.includes(it.cat) || it.cat === 'skin') ? { ...profile.look, [it.cat]: it.id } : profile.look;
+const pubWith = it => ({ look: lookWith(it), frame: it && it.cat === 'frame' ? it.id : profile.cos.frame });
+function previewOf(it, big) {
+  if (it.cat === 'back') return `<span class="pvback ${it.id}${big ? ' big' : ''}"></span>`;
+  if (it.cat === 'felt') return `<span class="pvfelt${big ? ' big' : ''}" data-felt="${it.id}"><span class="pvback ${profile.back}"></span></span>`;
+  return avHTML(pubWith(it), profile.name, big ? 'xl' : '');
 }
-function priceHTML(it) {
-  if (equipped(it)) return '<span class="price eqd">Équipé</span>';
-  if (owns(it)) return '<span class="price own">Possédé</span>';
-  if (it.req) { const [id, t] = reqOf(it), a = ACH.find(x => x.id === id); return `<span class="price req">Succès ${a ? a.name : ''} · ${TIERS[t - 1]}</span>`; }
-  return `<span class="price"><i class="coin"></i>${fmt(it.price)}</span>`;
+function stateOf(it) {
+  if (equipped(it)) return { label: 'Équipé', cls: 'eqd' };
+  if (owns(it)) return { label: 'À toi', cls: 'own' };
+  if (it.req) { const [id, t] = reqOf(it), a = ACH.find(x => x.id === id); return { label: `${a ? a.name : 'Succès'} · ${TIERS[t - 1]}`, cls: 'req' }; }
+  return { label: `<i class="coin"></i>${fmt(it.price)}`, cls: '' };
 }
 function renderShop() {
-  const g = SHOP.find(x => x.cat === shopCat) || SHOP[0];
-  $('#shop').innerHTML = `<div class="chipsbar">${SHOP.map(x => `<button class="cchip${x.cat === g.cat ? ' on' : ''}" data-cat="${x.cat}">${x.title}</button>`).join('')}</div>
-    <div class="shopgrid${['banner', 'title', 'nc'].includes(g.cat) ? ' wide' : ''}">${g.items.map(it => `<button class="sitem${equipped(it) ? ' eq' : ''}${!owns(it) && it.req ? ' locked' : ''}" data-it="${it.id}">${previewOf(it)}<b>${esc(it.name)}</b>${priceHTML(it)}</button>`).join('')}</div>`;
-  $$('[data-cat]').forEach(b => b.onclick = () => { shopCat = b.dataset.cat; sfx.tap(); renderShop(); });
-  $$('[data-it]').forEach(b => b.onclick = () => { const it = g.items.find(i => String(i.id) === b.dataset.it); if (buy(it)) renderShop(); });
+  const tab = SHOP_TABS.find(t => t.id === shopTab) || SHOP_TABS[0];
+  if (!tab.groups.some(g => g.cat === shopCat)) shopCat = tab.groups[0].cat;
+  const g = tab.groups.find(x => x.cat === shopCat);
+  const cur = trial && trial.cat === g.cat ? trial : g.items.find(equipped) || g.items[0];
+  const st = stateOf(cur);
+  const action = equipped(cur) ? '<button class="btn full" disabled>Équipé</button>'
+    : owns(cur) ? '<button class="btn white full" id="shopAct">Équiper</button>'
+    : cur.req ? `<button class="btn full" disabled>Débloqué par le succès ${st.label}</button>`
+    : `<button class="btn white full" id="shopAct"${profile.bank < cur.price ? ' disabled' : ''}>Acheter · ${fmt(cur.price)}</button>`;
+  $('#shop').innerHTML = `<div class="seg">${SHOP_TABS.map(t => `<button class="${t.id === tab.id ? 'on' : ''}" data-tab="${t.id}">${t.title}</button>`).join('')}</div>
+    <div class="tryon"><div class="trypv">${previewOf(cur, true)}</div><b>${esc(cur.name)}</b><small>${trial && !equipped(trial) ? 'Essai · ' : ''}${st.label}</small>${action}</div>
+    ${tab.groups.length > 1 ? `<div class="chipsbar">${tab.groups.map(x => `<button class="cchip${x.cat === g.cat ? ' on' : ''}" data-cat="${x.cat}">${x.title}</button>`).join('')}</div>` : ''}
+    <div class="shopgrid">${g.items.map(it => { const s = stateOf(it); return `<button class="sitem${it === cur ? ' sel' : ''}${equipped(it) ? ' eq' : ''}" data-it="${it.id}">${previewOf(it)}<b>${esc(it.name)}</b><span class="price ${s.cls}">${s.label}</span></button>`; }).join('')}</div>`;
+  $$('[data-tab]').forEach(b => b.onclick = () => { shopTab = b.dataset.tab; trial = null; sfx.tap(); renderShop(); });
+  $$('[data-cat]').forEach(b => b.onclick = () => { shopCat = b.dataset.cat; trial = null; sfx.tap(); renderShop(); });
+  $$('[data-it]').forEach(b => b.onclick = () => { trial = g.items.find(i => String(i.id) === b.dataset.it); sfx.tap(); renderShop(); });
+  const act = $('#shopAct'); if (act) act.onclick = () => { if (buy(cur)) { trial = null; renderShop(); } };
 }
 // Achète si besoin puis équipe ; renvoie true si quelque chose a changé
 function buy(it) {
   if (!owns(it)) {
     if (it.req) { toast('Débloque ce succès pour l\'obtenir', { cls: 'bad' }); vib(30); return false; }
     if (profile.bank < it.price) { toast('Pas assez de jetons', { cls: 'bad' }); vib(40); return false; }
-    profile.bank -= it.price; profile.owned.push(ownKey(it.cat, it.id)); sfx.win(); toast(`<b>${esc(it.name)}</b> débloqué`);
+    profile.bank -= it.price; profile.owned.push(ownKey(it.cat, it.id)); sfx.win(); toast(`<b>${esc(it.name)}</b> est à toi`);
   } else sfx.tap();
   equip(it); applyLook(); save(); pushMyBoard();
   return true;
@@ -272,45 +283,41 @@ net.on('invite', c => {
 function renderProfile() {
   const acc = stats.dec ? Math.round(100 * stats.good / stats.dec) + '%' : '–';
   const wr = stats.hands ? Math.round(100 * stats.won / stats.hands) + '%' : '–', lv = level();
-  $('#profile').innerHTML = `<div class="pcard"><div class="banner" data-b="${esc(profile.cos.banner)}"></div>
-      <button class="pav" id="editAv">${avHTML(myPub(), profile.name, 'lg')}<span class="pen"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M3 17.2V21h3.8L17.8 10l-3.8-3.8L3 17.2zM20.7 7.1a1 1 0 0 0 0-1.4l-2.4-2.4a1 1 0 0 0-1.4 0l-1.9 1.9 3.8 3.8 1.9-1.9z"/></svg></span></button>
-      <div class="pinfo">${nameHTML(profile.name, myPub())}${profile.cos.title ? `<small class="ptitle">${esc(profile.cos.title)}</small>` : ''}
-        <div class="lvl"><span>Niveau <b>${lv.lvl}</b></span><span class="bar"><i style="width:${Math.round(100 * lv.rest / lv.need)}%"></i></span><span>${fmt(lv.rest)} / ${fmt(lv.need)} XP</span></div>
-        <small class="pmail">${esc((auth.currentUser() || {}).email || '')} · code ${profile.code}</small></div>
-      <div class="grid pbtns"><button class="btn" id="goCustom">Personnaliser</button><button class="btn white" id="editAv2">Modifier l'avatar</button></div></div>
+  $('#profile').innerHTML = `<div class="pcard">
+      <button class="pav" id="editAv" aria-label="Changer de style">${avHTML(myPub(), profile.name, 'xl')}</button>
+      <b class="pname">${esc(profile.name)}</b>
+      <div class="lvl"><span>Niveau <b>${lv.lvl}</b></span><span class="bar"><i style="width:${Math.round(100 * lv.rest / lv.need)}%"></i></span><span>${fmt(lv.rest)}/${fmt(lv.need)}</span></div>
+      <small class="pmail">Code ami ${profile.code}</small></div>
+    <h2 class="h">Statistiques</h2>
     <div class="stats">
       <div class="stat"><b>${fmt(profile.bank)}</b><span>Jetons</span></div>
-      <div class="stat"><b>${fmt(stats.best)}</b><span>Meilleur solde</span></div>
-      <div class="stat"><b>${fmt(stats.hands)}</b><span>Mains jouées</span></div>
       <div class="stat"><b>${wr}</b><span>Mains gagnées</span></div>
+      <div class="stat"><b>${fmt(stats.hands)}</b><span>Mains jouées</span></div>
       <div class="stat"><b>${acc}</b><span>Précision stratégie</span></div>
       <div class="stat"><b>${fmt(stats.bj)}</b><span>Blackjacks</span></div>
       <div class="stat"><b>${stats.bestStreak}</b><span>Meilleure série</span></div>
+      <div class="stat"><b>${fmt(stats.best)}</b><span>Meilleur solde</span></div>
       <div class="stat"><b>${fmt(stats.tourWins || 0)}</b><span>Tournois gagnés</span></div>
     </div>${achHTML()}`;
-  $('#editAv').onclick = $('#editAv2').onclick = () => avatarEditor();
-  $('#goCustom').onclick = () => { shopCat = 'frame'; go('s-shop'); };
+  $('#editAv').onclick = () => myStyle();
 }
 
-// Éditeur d'avatar : aperçu en direct, achat des pièces manquantes
-let edCat = 'skin';
-function avatarEditor() {
-  const cats = [{ cat: 'skin', title: 'Teint', items: SKIN_ITEMS }, ...SHOP.filter(g => AVATAR_CATS.includes(g.cat))];
-  const el = sheet('<div id="aved"></div>');
+// Mon style : uniquement ce que le joueur possède (l'essai et l'achat se font dans la Boutique)
+let msCat = 'skin';
+function myStyle() {
+  const groups = ALL_GROUPS.map(g => ({ ...g, items: g.items.filter(owns) })).filter(g => g.items.length > 1 || g.cat === 'skin');
+  const el = sheet('<div id="mystyle"></div>');
   const draw = () => {
-    const g = cats.find(c => c.cat === edCat) || cats[0];
-    el.querySelector('#aved').innerHTML = `<div class="avprev">${avHTML(myPub(), profile.name, 'xl')}</div>
-      <div class="chipsbar">${cats.map(c => `<button class="cchip${c.cat === g.cat ? ' on' : ''}" data-ec="${c.cat}">${c.title.replace('Couleur des cheveux', 'Couleur')}</button>`).join('')}</div>
-      <div class="edgrid">${g.items.map(it => `<button class="eopt${equipped(it) || (it.cat === 'skin' && profile.look.skin === it.id) ? ' eq' : ''}${owns(it) ? '' : ' lockd'}" data-eo="${it.id}">
-        ${avHTML({ look: { ...profile.look, [it.cat]: it.id } }, profile.name)}${owns(it) ? '' : it.req ? '<small>Succès</small>' : `<small><i class="coin"></i>${fmt(it.price)}</small>`}</button>`).join('')}</div>
-      <button class="btn white full" id="edDone">Terminé</button>`;
-    el.querySelectorAll('[data-ec]').forEach(b => b.onclick = () => { edCat = b.dataset.ec; draw(); });
-    el.querySelectorAll('[data-eo]').forEach(b => b.onclick = () => {
-      const it = g.items.find(i => String(i.id) === b.dataset.eo);
-      if (it.cat === 'skin') { profile.look.skin = it.id; applyLook(); save(); pushMyBoard(); sfx.tap(); return draw(); }
-      if (buy(it)) draw();
+    const g = groups.find(x => x.cat === msCat) || groups[0];
+    el.querySelector('#mystyle').innerHTML = `<div class="avprev">${avHTML(myPub(), profile.name, 'xl')}</div>
+      <div class="chipsbar">${groups.map(x => `<button class="cchip${x.cat === g.cat ? ' on' : ''}" data-mc="${x.cat}">${x.cat === 'felt' ? 'Fond' : x.cat === 'back' ? 'Cartes' : x.title}</button>`).join('')}</div>
+      <div class="edgrid">${g.items.map(it => `<button class="eopt${equipped(it) ? ' eq' : ''}" data-mo="${it.id}">${previewOf(it)}<small>${esc(it.name)}</small></button>`).join('')}</div>
+      <p class="hint">D'autres styles t'attendent dans la Boutique.</p>`;
+    el.querySelectorAll('[data-mc]').forEach(b => b.onclick = () => { msCat = b.dataset.mc; draw(); });
+    el.querySelectorAll('[data-mo]').forEach(b => b.onclick = () => {
+      const it = g.items.find(i => String(i.id) === b.dataset.mo);
+      equip(it); applyLook(); save(); pushMyBoard(); sfx.tap(); draw(); renderProfile();
     });
-    el.querySelector('#edDone').onclick = () => { closeSheet(); renderProfile(); };
   };
   draw();
 }
