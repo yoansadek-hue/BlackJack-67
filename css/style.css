@@ -335,3 +335,7 @@ body:not(.intable) #app::after{content:"";position:fixed;left:0;right:0;bottom:0
 #s-table{padding-bottom:calc(env(safe-area-inset-bottom) + 14px)}
 #toasts .toast{font-size:13px;text-align:center}
 .wait b{white-space:nowrap}
+.row2{grid-template-columns:50px 1fr 1.15fr}
+.pill.icon{display:grid;place-items:center;padding:0}
+.row2 .pill{padding:0 6px}
+@media (max-width:400px){.mebox{width:96px}.row2{grid-template-columns:44px 1fr 1fr}.pill{font-size:13px}}
