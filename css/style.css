@@ -544,3 +544,25 @@ body[data-felt=marbre] #s-table{background:repeating-linear-gradient(115deg,rgba
   #app{max-width:820px}
   .mcard{flex-basis:48%}
 }
+
+/* ===== v5 : case joueur avec chances, jetons au centre, cartes ===== */
+.card{justify-content:flex-start;gap:calc(var(--cw)*.05)}
+.card .s{align-self:flex-start;font-size:calc(var(--cw)*.3);margin-left:calc(var(--cw)*.01)}
+.mebox{width:128px;align-items:flex-start;justify-content:center;gap:6px;padding:14px 16px;position:relative}
+.mebox .av{position:absolute;top:10px;right:10px;width:32px;height:32px}
+.mrow{display:flex;flex-direction:column;gap:1px}
+.mrow small{font-size:12px;color:var(--muted);font-weight:600}
+.mrow b{font-size:26px;font-weight:600;letter-spacing:-.03em;line-height:1.05}
+.mrow b.lo{color:var(--red)}.mrow b.hi{color:#fff}
+.mrow + .mrow b{font-size:22px;color:#e5e5ea}
+#pot{height:58px;display:flex;align-items:center;justify-content:center;gap:10px}
+#pot b{font-size:20px;font-weight:700;letter-spacing:-.02em}
+.potchip,.flychip{width:40px;height:40px;border-radius:50%;background:var(--c);flex:none;
+  box-shadow:inset 0 0 0 4px rgba(0,0,0,.22),inset 0 0 0 7px var(--c),inset 0 0 0 9px rgba(255,255,255,.55),0 6px 14px rgba(0,0,0,.5)}
+.potchip{position:relative}
+.potchip::after{content:"";position:absolute;inset:-4px 0 4px;border-radius:50%;background:inherit;box-shadow:inherit;z-index:-1;transform:translateY(5px);filter:brightness(.7)}
+#pot.bump .potchip{animation:bump .35s cubic-bezier(.2,.9,.3,1.5)}
+@keyframes bump{0%{transform:scale(.8)}60%{transform:scale(1.12)}100%{transform:none}}
+.flychip{position:fixed;z-index:95;pointer-events:none}
+@media (max-width:400px){.mebox{width:112px;padding:12px}.mrow b{font-size:22px}.mrow + .mrow b{font-size:18px}}
+@media (min-width:768px){.mebox{width:150px}.mrow b{font-size:30px}}
