@@ -43,8 +43,8 @@ export function best(h, up, canD, canP) {
 const BET_TIME = 15000, TURN_TIME = 30000;
 
 export class Table {
-  constructor({ online = false, onChange }) {
-    Object.assign(this, { online, onChange, seats: [], dealer: [], hole: true, phase: 'bet', turn: -1, round: 0, deadline: 0, timer: null, busy: false, dead: false });
+  constructor({ online = false, onChange, stake = 0 }) {
+    Object.assign(this, { online, onChange, stake, seats: [], dealer: [], hole: true, phase: 'bet', turn: -1, round: 0, deadline: 0, timer: null, busy: false, dead: false });
     this.newShoe();
   }
   newShoe() {
@@ -61,17 +61,17 @@ export class Table {
   // État envoyé aux joueurs (la carte cachée du croupier reste secrète)
   snapshot() {
     return JSON.parse(JSON.stringify({
-      phase: this.phase, round: this.round, turn: this.turn, deadline: this.deadline, hole: this.hole,
+      phase: this.phase, stake: this.stake, round: this.round, turn: this.turn, deadline: this.deadline, hole: this.hole,
       dealer: this.hole && this.dealer.length > 1 ? [this.dealer[0], { back: true }] : this.dealer,
-      seats: this.seats.map(({ id, name, bet, ready, out, bank, hands, net, cur, gone }) => ({ id, name, bet, ready, out, bank, hands, net, cur, gone })),
+      seats: this.seats.map(({ id, name, avatar, bet, ready, out, bank, hands, net, cur, gone }) => ({ id, name, avatar, bet, ready, out, bank, hands, net, cur, gone })),
     }));
   }
 
-  addSeat(id, name) {
+  addSeat(id, name, avatar) {
     if (this.seats.some(s => s.id === id && !s.gone)) return true;
     if (this.live().length >= 4) return false;
     this.seats = this.seats.filter(s => s.id !== id);
-    this.seats.push({ id, name, bet: 0, ready: false, out: this.phase !== 'bet', bank: 0, hands: [], net: null, cur: 0 });
+    this.seats.push({ id, name, avatar, bet: 0, ready: false, out: this.phase !== 'bet', bank: 0, hands: [], net: null, cur: 0 });
     this.emit('seat'); return true;
   }
   removeSeat(id) {
@@ -84,7 +84,8 @@ export class Table {
 
   bet(id, amount, bank) {
     const s = this.seats.find(x => x.id === id);
-    if (this.phase !== 'bet' || !s || s.ready || !(amount > 0) || amount > bank) return;
+    const lv = STAKES[this.stake] || STAKES[0];
+    if (this.phase !== 'bet' || !s || s.ready || !(amount >= lv.min) || amount > lv.max || amount > bank) return;
     Object.assign(s, { bet: amount, bank: bank - amount, ready: true });
     this.emit('bet'); this.checkStart();
   }
@@ -185,4 +186,45 @@ export class Table {
     for (const s of this.seats) { s.ready = false; s.bet = 0; }
     this.phase = 'bet'; this.emit('done');
   }
+}
+
+// ---------- Niveaux de table (on joue selon ses jetons) ----------
+export const STAKES = [
+  { id: 0, name: 'Salon', min: 10, max: 200, chips: [10, 25, 50, 100], need: 0 },
+  { id: 1, name: 'Club', min: 50, max: 1000, chips: [50, 100, 250, 500], need: 1000 },
+  { id: 2, name: 'Prestige', min: 250, max: 5000, chips: [250, 500, 1000, 2500], need: 5000 },
+  { id: 3, name: 'Élite', min: 1000, max: 25000, chips: [1000, 2500, 5000, 10000], need: 25000 },
+  { id: 4, name: 'Légende', min: 5000, max: 100000, chips: [5000, 10000, 25000, 50000], need: 100000 },
+];
+
+// ---------- Probabilités de la main en cours (simulation, stratégie de base) ----------
+const RV = [11, 2, 3, 4, 5, 6, 7, 8, 9, 10, 10, 10, 10];
+const rnd = () => RV[Math.random() * 13 | 0];
+function addCard(st, v) { st.t += v; if (v === 11) st.a++; while (st.t > 21 && st.a) { st.t -= 10; st.a--; } }
+function fromCards(cards) { const st = { t: 0, a: 0 }; cards.forEach(c => addCard(st, val(c))); return st; }
+export function odds(cards, up, n = 2500) {
+  if (!cards.length || !up || up.back) return null;
+  const u = val(up);
+  let win = 0, push = 0;
+  for (let i = 0; i < n; i++) {
+    const p = fromCards(cards); let len = cards.length, stop = false;
+    while (!stop && p.t < 21) {
+      // Décision rapide (stratégie de base sur le total)
+      const soft = p.a > 0, t = p.t;
+      let a;
+      if (soft) a = t >= 19 || (t === 18 && u <= 8) ? 'S' : 'H';
+      else a = t >= 17 || (t >= 13 && u <= 6) || (t === 12 && u >= 4 && u <= 6) ? 'S' : 'H';
+      if (a === 'S') break;
+      const dbl = len === 2 && ((t === 11 && u <= 10) || (t === 10 && u <= 9) || (t === 9 && u >= 3 && u <= 6));
+      addCard(p, rnd()); len++;
+      if (dbl) stop = true;
+    }
+    if (p.t > 21) continue;
+    const d = { t: 0, a: 0 }; addCard(d, u);
+    let hole; do { hole = rnd(); } while ((u === 11 && hole === 10) || (u === 10 && hole === 11)); // pas de blackjack croupier
+    addCard(d, hole);
+    while (d.t < 17) addCard(d, rnd());
+    if (d.t > 21 || p.t > d.t) win++; else if (p.t === d.t) push++;
+  }
+  return { win: win / n, push: push / n, lose: 1 - (win + push) / n };
 }

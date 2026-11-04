@@ -34,7 +34,7 @@ export function toast(html, { cls = '', action, onAction, ms = 3000 } = {}) {
   t.innerHTML = `<span>${html}</span>`;
   if (action) {
     const b = document.createElement('button');
-    b.className = 'btn sm primary'; b.textContent = action;
+    b.className = 'btn sm white'; b.textContent = action;
     b.onclick = () => { t.remove(); onAction && onAction(); };
     t.appendChild(b); ms = Math.max(ms, 9000);
   }
