@@ -191,9 +191,17 @@ function cardEl(c, key) {
   const flip = fresh && c && !c.back && seen.has(key + 'b');
   seen.add(k);
   const anim = flip ? ' flip' : fresh ? ' in' : '';
-  if (!c || c.back) return `<div class="card back${anim}"></div>`;
+  if (!c || c.back) return `<div class="card back${anim}" data-k="${key}"></div>`;
   const red = c.s === '♥' || c.s === '♦';
-  return `<div class="card${red ? ' red' : ''}${anim}"><div class="r">${c.r}</div><div class="s">${c.s}\uFE0E</div></div>`;
+  return `<div class="card${red ? ' red' : ''}${anim}" data-k="${key}"><div class="r">${c.r}</div><div class="s">${c.s}\uFE0E</div><div class="big">${c.s}\uFE0E</div></div>`;
+}
+// Effet « sauté » joué une seule fois par main
+const busted = new Set(), toShake = [];
+function bustFx(key, cards) {
+  if (total(cards).t <= 21) return '';
+  if (busted.has(key)) return ' busted';
+  busted.add(key); toShake.push(key); sfx.lose(); vib([20, 40, 20]);
+  return ' busted';
 }
 function sideTotal(h) { const { t, soft } = total(h.cards); return soft && t < 21 && !h.done ? `${t - 10}/${t}` : t; }
 function handLabel(h) {
@@ -207,13 +215,25 @@ const tag = h => !h.res ? '' : h.bj ? '<span class="tag bj">BJ</span>' : h.res =
 
 function render() {
   const s = snap; if (!s || !ctl) return;
+  const before = new Map();
+  $$('#s-table .card[data-k]').forEach(e => before.set(e.dataset.k, e.getBoundingClientRect()));
+  renderInner(s);
+  while (toShake.length) { const e = $(`[data-hk="${toShake.shift()}"] .cards`); if (e) e.animate([{ transform: 'none' }, { transform: 'translateX(-8px)' }, { transform: 'translateX(8px)' }, { transform: 'translateX(-6px)' }, { transform: 'translateX(4px)' }, { transform: 'none' }], { duration: 450, easing: 'ease-in-out' }); }
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  $$('#s-table .card[data-k]').forEach(e => {
+    const a = before.get(e.dataset.k); if (!a || e.classList.contains('in') || e.classList.contains('flip')) return;
+    const b = e.getBoundingClientRect(), dx = a.left - b.left, dy = a.top - b.top;
+    if (Math.abs(dx) > 1 || Math.abs(dy) > 1) e.animate([{ transform: `translate(${dx}px,${dy}px)` }, { transform: 'none' }], { duration: 320, easing: 'cubic-bezier(.22,1,.36,1)' });
+  });
+}
+function renderInner(s) {
   const me = mySeat();
-  if (s.round !== seenRound) { seenRound = s.round; seen = new Set(); }
+  if (s.round !== seenRound) { seenRound = s.round; seen = new Set(); busted.clear(); }
 
   $('#dCards').innerHTML = s.dealer.map((c, i) => cardEl(c, 'd' + i)).join('');
   const ds = $('#dScore');
   if (!s.dealer.length) { ds.textContent = ''; ds.className = 'dtotal'; }
-  else { const t = total(s.dealer).t, bj = !s.hole && s.dealer.length === 2 && t === 21; ds.textContent = bj ? 'BJ' : t; ds.className = 'dtotal' + (t > 21 ? ' bust' : bj ? ' bj' : ''); }
+  else { const t = total(s.dealer).t, bj = !s.hole && s.dealer.length === 2 && t === 21; ds.textContent = bj ? 'BJ' : t > 21 ? 'Sauté' : t; ds.className = 'dtotal' + (t > 21 ? ' bust' : bj ? ' bj' : ''); if (t > 21) $('#dCards').classList.add('busted'); else $('#dCards').classList.remove('busted'); }
 
   const turnId = s.phase === 'play' && s.seats[s.turn] ? s.seats[s.turn].id : null;
   $('#others').innerHTML = s.seats.filter(x => x.id !== ctl.myId).map(x => {
@@ -226,9 +246,9 @@ function render() {
   if (!me || !me.hands.length) { ph.innerHTML = ''; ph.classList.remove('multi'); }
   else {
     ph.classList.toggle('multi', me.hands.length > 1);
-    ph.innerHTML = me.hands.map((h, i) => `<div class="hand${(turnId === me.id && i === me.cur) || s.phase !== 'play' ? ' active' : ''}">
+    ph.innerHTML = me.hands.map((h, i) => `<div class="hand${(turnId === me.id && i === me.cur) || s.phase !== 'play' ? ' active' : ''}${bustFx('me' + i, h.cards)}" data-hk="me${i}">
       <div class="cards">${h.cards.map((c, j) => cardEl(c, 'me' + i + ':' + j)).join('')}</div>
-      <div class="side"><b class="tot${total(h.cards).t > 21 ? ' bust' : isBJ(h) ? ' bj' : ''}">${isBJ(h) ? 'BJ' : sideTotal(h)}</b>${tag(h)}</div></div>`).join('');
+      <div class="side"><b class="tot${total(h.cards).t > 21 ? ' bust' : isBJ(h) ? ' bj' : ''}">${isBJ(h) ? 'BJ' : total(h.cards).t > 21 ? 'Sauté' : sideTotal(h)}</b>${tag(h)}</div></div>`).join('');
   }
   const mb = $('#meBubble'), r = bubble(ctl.myId);
   mb.hidden = !r; if (r) mb.textContent = reacts.get(ctl.myId).text;
@@ -242,7 +262,7 @@ function curOdds(me) {
   const turnId = snap.phase === 'play' && snap.seats[snap.turn] ? snap.seats[snap.turn].id : null;
   const h = me.hands[turnId === me.id ? me.cur : 0];
   if (!h || h.res || h.cards.length < 2) return null;
-  if (total(h.cards).t > 21) return { w: 0, p: 0 };
+  if (total(h.cards).t > 21) return null;
   const key = h.cards.map(c => c.r).join() + '|' + snap.dealer[0].r;
   if (key !== oddsCache.key) {
     const o = isBJ(h) ? { win: 1, push: 0 } : odds(h.cards, snap.dealer[0]);
@@ -400,3 +420,12 @@ function showStats(seat) {
     <div class="sc-grid">${cells}</div></div>`);
 }
 $('#others').addEventListener('click', e => { const p = e.target.closest('[data-pid]'); if (p && snap) showStats(snap.seats.find(x => x.id === p.dataset.pid)); });
+
+// Faut-il confirmer avant de quitter ? (seulement si des jetons sont en jeu)
+export function atStake() {
+  const me = mySeat();
+  if (!snap || !me) return false;
+  if (snap.tour) return snap.phase !== 'over' && snap.phase !== 'lobby';
+  if (snap.phase === 'bet') return !!me.ready;
+  return snap.phase !== 'over' && !me.out;
+}

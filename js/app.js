@@ -349,6 +349,7 @@ const RENDER = { 's-home': renderHome, 's-shop': renderShop, 's-friends': render
 
 // ---------- Divers ----------
 $('#leave').onclick = () => {
+  if (!table.atStake()) return table.exit();
   const el = sheet(`<h2>Quitter la table ?</h2><p>Une main en cours sera perdue.</p><div class="grid"><button class="btn" id="no">Rester</button><button class="btn white" id="yes">Quitter</button></div>`);
   el.querySelector('#no').onclick = closeSheet;
   el.querySelector('#yes').onclick = () => { closeSheet(); table.exit(); };
