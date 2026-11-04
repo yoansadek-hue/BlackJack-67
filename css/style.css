@@ -629,3 +629,51 @@ body[data-felt=marbre] #s-table{background:repeating-linear-gradient(115deg,rgba
 @media (max-height:700px){.rbtn .ri{width:56px;height:56px}.rbtn.main .ri{width:64px;height:64px}#betUI .chip{width:58px;height:58px}}
 #playUI.acts,#betAct.acts{display:flex;grid-template-columns:none;flex-wrap:nowrap}
 @media (max-width:380px){.acts{gap:10px}.rbtn{min-width:60px}}
+
+/* ===== v7 : grand symbole, boutons rectangulaires, animations fluides ===== */
+.card .big{display:block;position:absolute;right:calc(var(--cw)*.1);bottom:calc(var(--cw)*.06);font-size:calc(var(--cw)*.54);line-height:1;pointer-events:none}
+.seat .card .big,.pl .card .big{display:none}
+.card{will-change:auto;contain:layout paint}
+/* boutons : rectangles arrondis, icône + texte */
+.acts{display:flex;gap:8px;justify-content:center}
+.rbtn{flex:1;max-width:132px;min-width:0;height:68px;border-radius:18px;background:var(--s2);flex-direction:column;justify-content:center;gap:5px;
+  transition:transform .15s cubic-bezier(.3,.7,.4,1),background .2s,opacity .2s}
+.rbtn .ri{width:auto;height:auto;background:none;border-radius:0}
+.rbtn .ri svg{width:22px;height:22px}
+.rbtn .rl{font-size:14px;color:#fff}
+.rbtn.main{background:#fff;color:#000;max-width:170px}
+.rbtn.main .ri{width:auto;height:auto;background:none}
+.rbtn.main .rl{color:#000}
+.rbtn:active{transform:scale(.96)}
+.rbtn:active .ri{transform:none}
+.rbtn.hint{box-shadow:0 0 0 2px #fff inset}
+.rbtn.main.hint{box-shadow:0 0 0 2px #000 inset}
+#playUI .rbtn[data-a="S"]{background:#fff;color:#000}#playUI .rbtn[data-a="S"] .rl{color:#000}
+@media (min-width:768px){.rbtn{height:76px;max-width:150px}.rbtn .ri{width:auto;height:auto}.rbtn.main .ri{width:auto;height:auto}}
+@media (max-height:700px){.rbtn{height:58px}.rbtn .ri,.rbtn.main .ri{width:auto;height:auto}}
+/* distribution : la carte part du sabot (en haut à droite) et se pose en douceur */
+.card.in{animation:dealIn .52s cubic-bezier(.22,1,.36,1) backwards;will-change:transform,opacity}
+@keyframes dealIn{0%{transform:translate3d(34vw,-38vh,0) rotate(22deg) scale(.82);opacity:0}18%{opacity:1}100%{transform:none;opacity:1}}
+.card.flip{animation:flipIn .42s cubic-bezier(.3,.7,.3,1) backwards;transform-origin:center}
+@keyframes flipIn{0%{transform:perspective(800px) rotateY(-90deg) scale(1.04)}100%{transform:none}}
+/* sauté */
+.hand.busted .cards{opacity:.55;transition:opacity .4s}
+.hand.shake .cards{animation:shake .45s cubic-bezier(.36,.07,.19,.97)}
+@keyframes shake{10%,90%{transform:translateX(-2px)}20%,80%{transform:translateX(4px)}30%,50%,70%{transform:translateX(-7px)}40%,60%{transform:translateX(7px)}}
+.hand .tot.bust,.dtotal.bust{color:var(--red)}
+.hand .tot.bust{font-size:22px}
+#dCards.busted{opacity:.55;transition:opacity .4s}
+/* résultats, jetons, messages */
+#oddsLine{transition:opacity .25s}
+#oddsLine:empty{opacity:0}
+.toast{animation:toastIn .32s cubic-bezier(.22,1,.36,1)}
+@keyframes toastIn{from{opacity:0;transform:translateY(-6px) scale(.96)}}
+#pot.bump .potchip{animation:bump .4s cubic-bezier(.22,1.4,.36,1)}
+/* écrans et feuilles */
+.screen.on{animation:screenIn .32s cubic-bezier(.22,1,.36,1)}
+@keyframes screenIn{from{opacity:0;transform:translateY(8px)}}
+.sheet{animation:up .38s cubic-bezier(.22,1,.36,1)}
+.sheet-bg{animation:fade .25s ease-out}
+.mcard,.spill,.sitem,.cchip,.chip,.btn,.pill{transition:transform .15s cubic-bezier(.3,.7,.4,1),background .2s,border-color .2s,opacity .2s}
+.sitem:active,.spill:active,.cchip:active{transform:scale(.96)}
+@media (prefers-reduced-motion: reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
