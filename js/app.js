@@ -19,6 +19,7 @@ function go(id) {
   $$('.screen').forEach(s => s.classList.toggle('on', s.id === id));
   cur = id;
   bar.classList.toggle('away', id === 's-table');
+  document.body.classList.toggle('intable', id === 's-table');
   TABS.forEach(t => t.classList.toggle('on', t.dataset.go === id));
   placePill(TABS.findIndex(t => t.dataset.go === id));
   if (RENDER[id]) RENDER[id]();

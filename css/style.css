@@ -321,3 +321,17 @@ body[data-back=or] .card.back,.pvback.or{background-color:#2b2510;background-ima
 .rank .nm{flex:1}
 .wait .btn{margin-left:4px}
 @media (min-width:768px){.achs{grid-template-columns:repeat(3,1fr)}}
+
+/* ---------- Corrections d'affichage ---------- */
+.pill{white-space:nowrap;font-size:14px;padding:0 10px}
+.row2 .pill{min-width:0;overflow:hidden;text-overflow:ellipsis}
+.stake{flex-basis:40%}
+@media (min-width:768px){.stake{flex-basis:28%}}
+.av[data-s=a5]{color:#fff;text-shadow:0 0 4px #000,0 0 2px #000}
+/* fondu sous la barre d'onglets pour que le contenu ne s'y écrase pas */
+body:not(.intable) #app::after{content:"";position:fixed;left:0;right:0;bottom:0;height:calc(96px + env(safe-area-inset-bottom));
+  background:linear-gradient(rgba(0,0,0,0),#000 65%);pointer-events:none;z-index:30}
+.screen{padding-bottom:calc(120px + env(safe-area-inset-bottom))}
+#s-table{padding-bottom:calc(env(safe-area-inset-bottom) + 14px)}
+#toasts .toast{font-size:13px;text-align:center}
+.wait b{white-space:nowrap}
