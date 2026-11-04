@@ -58,7 +58,7 @@ bar.addEventListener('pointercancel', () => { dragging = false; bar.classList.re
 addEventListener('resize', () => placePill(TABS.findIndex(t => t.dataset.go === cur)));
 
 // ---------- Accueil : modes en carrousel, tables, classement ----------
-const STAKE_COLORS = ['#f5f5f7', '#64d2ff', '#bf5af2', '#ff9f0a', '#ff453a'];
+const STAKE_COLORS = ['var(--c-white)', 'var(--c-blue)', 'var(--c-lav)', 'var(--c-sand)', 'var(--c-coral)'];
 const short = v => v >= 1000 ? (v / 1000).toLocaleString('fr-FR') + 'k' : String(v);
 const ICONS = {
   solo: '<path fill="currentColor" d="M12 2c3 3.6 8 7 8 11.2A4.3 4.3 0 0 1 15.7 17.5c-1.2 0-2.2-.5-2.9-1.3.3 2 1 3.6 2.2 4.8H9c1.2-1.2 1.9-2.8 2.2-4.8-.7.8-1.7 1.3-2.9 1.3A4.3 4.3 0 0 1 4 13.2C4 9 9 5.6 12 2z"/>',
@@ -68,11 +68,11 @@ const ICONS = {
   train: '<g fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4.5"/></g><circle cx="12" cy="12" r="1.3" fill="currentColor"/>',
 };
 const MODES = [
-  { m: 'solo', name: 'Solo', sub: 'Toi contre le croupier', tint: '#f5f5f7', info: () => STAKES[profile.stake].name + ' · mise ' + short(STAKES[profile.stake].min) + '–' + short(STAKES[profile.stake].max) },
-  { m: 'quick', name: 'Partie rapide', sub: 'Un joueur au hasard', tint: '#64d2ff', info: () => 'En ligne · table ' + STAKES[profile.stake].name },
-  { m: 'friends', name: 'Avec des amis', sub: 'Ta table privée', tint: '#bf5af2', info: () => "Jusqu'à 4 joueurs · code " + profile.code },
-  { m: 'tour', name: 'Tournoi', sub: 'Entre amis, 15 mains', tint: '#ff9f0a', info: () => '5 000 jetons offerts · 1 000 au gagnant' },
-  { m: 'train', name: 'Entraînement', sub: 'Chaque coup est corrigé', tint: '#ff453a', info: () => 'Apprends la stratégie de base' },
+  { m: 'solo', name: 'Solo', sub: 'Toi contre le croupier', tint: 'var(--c-white)', info: () => STAKES[profile.stake].name + ' · mise ' + short(STAKES[profile.stake].min) + '–' + short(STAKES[profile.stake].max) },
+  { m: 'quick', name: 'Partie rapide', sub: 'Un joueur au hasard', tint: 'var(--c-blue)', info: () => 'En ligne · table ' + STAKES[profile.stake].name },
+  { m: 'friends', name: 'Avec des amis', sub: 'Ta table privée', tint: 'var(--c-lav)', info: () => "Jusqu'à 4 joueurs · code " + profile.code },
+  { m: 'tour', name: 'Tournoi', sub: 'Entre amis, 15 mains', tint: 'var(--c-sand)', info: () => '5 000 jetons offerts · 1 000 au gagnant' },
+  { m: 'train', name: 'Entraînement', sub: 'Jetons fictifs, coups corrigés', tint: 'var(--c-coral)', info: () => 'Tes vrais jetons ne bougent pas' },
 ];
 const unlocked = lv => profile.bank >= lv.need || lv.id === 0;
 function renderHome() {
@@ -152,11 +152,13 @@ function quick() {
 
 function friendsSheet(prefill = '') {
   const el = sheet(`<h2>Avec des amis</h2><p>Ouvre ta table ${STAKES[profile.stake].name} : tes amis la rejoignent avec ton code. Jusqu'à 4 joueurs.</p>
-    <button class="btn white full" id="hostBtn">Créer ma table · ${profile.code}</button>
+    <button class="btn white full" id="hostBtn">Table avec mes jetons</button>
+    <button class="btn full" id="hostFun">Table pour le fun · jetons fictifs</button>
     <div class="sep">ou</div>
     <form class="addf" id="joinForm"><input id="joinCode" maxlength="6" placeholder="Code de la table" value="${esc(prefill)}"><button class="btn">Rejoindre</button></form>
     ${friends.length ? '<div class="sep">inviter un ami</div><div class="list" id="invList"></div>' : ''}`);
   el.querySelector('#hostBtn').onclick = () => hostRoom();
+  el.querySelector('#hostFun').onclick = () => hostRoom(true);
   el.querySelector('#joinForm').onsubmit = async e => { e.preventDefault(); const c = clean($('#joinCode').value); if (c.length === 6) join(c); };
   if (friends.length) {
     $('#invList').innerHTML = friends.map(f => `<div class="item">${avHTML(f.pub, f.name)}<div class="who"><b>${esc(f.name)}</b><small>${f.code}</small></div><button class="btn sm white" data-inv="${f.code}">Inviter</button></div>`).join('');
@@ -171,7 +173,7 @@ function tourSheet() {
   el.querySelector('#tourHost').onclick = () => { if (table.isPlaying()) table.exit(true); table.startHost('Tournoi', { tour: true }); openTable(); toast(`Code du tournoi : <b>${profile.code}</b>`, { ms: 5000 }); };
   el.querySelector('#tourJoin').onsubmit = e => { e.preventDefault(); const c = clean($('#tourCode').value); if (c.length === 6) join(c); };
 }
-function hostRoom() { if (!table.hosting()) table.startHost('Amis'); openTable(); toast(`Ton code de table : <b>${profile.code}</b>`, { ms: 5000 }); }
+function hostRoom(fun) { if (table.isPlaying()) table.exit(true); table.startHost(fun ? 'Fun' : 'Amis', { fun }); openTable(); toast(`Ton code de table : <b>${profile.code}</b>`, { ms: 5000 }); }
 async function join(code) {
   if (code === profile.code) return toast("C'est ton propre code", { cls: 'bad' });
   if (table.isPlaying()) table.exit(true);
@@ -335,6 +337,7 @@ function renderSettings() {
     </div>
     <div class="panel"><div class="row"><div>Règles<small>6 jeux · le croupier reste sur 17 · blackjack payé 3:2 · double après séparation · jusqu'à 4 mains</small></div></div></div>
     <button class="btn full" id="logout">Se déconnecter</button>
+    <p class="credit">Blackoff v2.4 · par YoskanGame</p>
     <button class="btn danger full" id="resetAll" style="margin-top:8px">Réinitialiser la progression</button>`;
   $('#logout').onclick = () => auth.logout();
   $$('.switch').forEach(b => b.onclick = () => { settings[b.dataset.k] = !settings[b.dataset.k]; b.classList.toggle('on'); save(); sfx.tap(); });

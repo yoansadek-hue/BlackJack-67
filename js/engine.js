@@ -43,8 +43,8 @@ export function best(h, up, canD, canP) {
 const BET_TIME = 15000, TURN_TIME = 30000;
 
 export class Table {
-  constructor({ online = false, onChange, stake = 0, tour = null }) {
-    Object.assign(this, { online, onChange, stake, tour, seats: [], dealer: [], hole: true, phase: tour ? 'lobby' : 'bet', turn: -1, round: 0, deadline: 0, timer: null, busy: false, dead: false });
+  constructor({ online = false, onChange, stake = 0, tour = null, fun = false }) {
+    Object.assign(this, { online, onChange, stake, tour, fun, seats: [], dealer: [], hole: true, phase: tour ? 'lobby' : 'bet', turn: -1, round: 0, deadline: 0, timer: null, busy: false, dead: false });
     this.newShoe();
   }
   newShoe() {
@@ -61,7 +61,7 @@ export class Table {
   // État envoyé aux joueurs (la carte cachée du croupier reste secrète)
   snapshot() {
     return JSON.parse(JSON.stringify({
-      phase: this.phase, stake: this.stake, tour: this.tour, round: this.round, turn: this.turn, deadline: this.deadline, hole: this.hole,
+      phase: this.phase, stake: this.stake, tour: this.tour, fun: this.fun, round: this.round, turn: this.turn, deadline: this.deadline, hole: this.hole,
       dealer: this.hole && this.dealer.length > 1 ? [this.dealer[0], { back: true }] : this.dealer,
       seats: this.seats.map(({ id, name, avatar, bet, ready, out, bank, hands, net, cur, gone, tbank }) => ({ id, name, avatar, bet, ready, out, bank, hands, net, cur, gone, tbank })),
     }));
@@ -71,7 +71,7 @@ export class Table {
     if (this.seats.some(s => s.id === id && !s.gone)) return true;
     if (this.live().length >= 4 || (this.tour && this.phase !== 'lobby')) return false;
     this.seats = this.seats.filter(s => s.id !== id);
-    this.seats.push({ id, name, avatar, tbank: this.tour ? this.tour.start : 0, bet: 0, ready: false, out: !['bet', 'lobby'].includes(this.phase), bank: 0, hands: [], net: null, cur: 0 });
+    this.seats.push({ id, name, avatar, tbank: this.tour ? this.tour.start : this.fun ? FUN_BANK : 0, bet: 0, ready: false, out: !['bet', 'lobby'].includes(this.phase), bank: 0, hands: [], net: null, cur: 0 });
     this.emit('seat'); return true;
   }
   removeSeat(id) {
@@ -87,11 +87,11 @@ export class Table {
     this.seats.forEach(s => s.tbank = this.tour.start);
     this.phase = 'bet'; this.emit('start');
   }
-  canPlay(s) { return !this.tour || s.tbank >= (STAKES[this.stake] || STAKES[0]).min; }
+  canPlay(s) { return (!this.tour && !this.fun) || s.tbank >= (STAKES[this.stake] || STAKES[0]).min; }
 
   bet(id, amount, bank) {
     const s = this.seats.find(x => x.id === id);
-    if (s && this.tour) bank = s.tbank;
+    if (s && (this.tour || this.fun)) bank = s.tbank;
     const lv = STAKES[this.stake] || STAKES[0];
     if (this.phase !== 'bet' || !s || s.ready || !(amount >= lv.min) || amount > lv.max || amount > bank) return;
     Object.assign(s, { bet: amount, bank: bank - amount, ready: true });
@@ -189,7 +189,8 @@ export class Table {
         net += h.gain;
       }
       s.net = net;
-      if (this.tour) s.tbank += net;
+      if (this.tour || this.fun) s.tbank += net;
+      if (this.fun && s.tbank < (STAKES[this.stake] || STAKES[0]).min) s.tbank = FUN_BANK;
     }
     this.seats = this.seats.filter(s => !s.gone);
     for (const s of this.seats) { s.ready = false; s.bet = 0; }
@@ -207,6 +208,7 @@ export const STAKES = [
   { id: 4, name: 'Légende', min: 5000, max: 100000, chips: [5000, 10000, 25000, 50000], need: 100000 },
   { id: 5, name: 'Tournoi', min: 50, max: 2500, chips: [50, 100, 250, 500], need: 0, hidden: true },
 ];
+export const FUN_BANK = 10000;
 export const TOUR = { hands: 15, start: 5000, prize: 1000 };
 
 // ---------- Probabilités de la main en cours (simulation, stratégie de base) ----------
