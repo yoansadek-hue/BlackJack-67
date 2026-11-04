@@ -24,8 +24,11 @@ input{font:inherit;color:var(--text)}
 [hidden]{display:none!important}
 
 #app{max-width:520px;margin:0 auto;height:100dvh;position:relative}
-.screen{position:absolute;inset:0;padding:env(safe-area-inset-top) 16px calc(110px + env(safe-area-inset-bottom));overflow-y:auto;display:none;animation:in .25s ease-out}
+.screen{position:absolute;inset:0;padding:env(safe-area-inset-top) 16px calc(96px + env(safe-area-inset-bottom));overflow-y:auto;display:none;animation:in .25s ease-out}
 .screen.on{display:block}
+.screen,.sheet{scrollbar-width:none;-ms-overflow-style:none;overscroll-behavior:contain}
+.screen::-webkit-scrollbar,.sheet::-webkit-scrollbar{display:none}
+*{scrollbar-width:none}*::-webkit-scrollbar{display:none}
 @keyframes in{from{opacity:0;transform:translateY(6px)}}
 .top{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:16px 0 14px}
 .top h1{margin:0;font-size:28px;letter-spacing:-.03em}
@@ -42,7 +45,7 @@ input{font:inherit;color:var(--text)}
 .mode small{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:var(--accent)}
 .mode b{font-size:18px;letter-spacing:-.02em}
 .mode span{font-size:13px;color:var(--muted)}
-.mode.hero{flex-direction:row;justify-content:space-between;align-items:center;min-height:150px;margin-bottom:10px;padding:20px;
+.mode.hero{flex-direction:row;justify-content:space-between;align-items:center;min-height:130px;margin-bottom:10px;padding:20px;
   background:radial-gradient(120% 140% at 100% 0%,color-mix(in srgb,var(--accent) 35%,transparent),transparent 60%),var(--surface)}
 .mode.hero>div{display:flex;flex-direction:column;gap:4px}
 .mode.hero b{font-size:26px}
