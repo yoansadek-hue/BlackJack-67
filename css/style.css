@@ -248,3 +248,8 @@ input{font:inherit;color:var(--text)}
   .chip:hover{transform:translateY(-3px)}
 }
 @media (min-width:768px) and (orientation:portrait){.cards{--cw:min(17vw,140px,11vh)}.hands.multi .cards{--cw:min(11vw,96px)}}
+.acct{display:flex;align-items:center;gap:12px}
+.acct .who{flex:1;min-width:0}.acct .who b{display:block}.acct .who small{color:var(--muted);font-size:12px}
+.gbtn{display:flex;align-items:center;justify-content:center;gap:10px;background:#fff;color:#1f1f1f;border-color:#fff;margin-bottom:12px}
+.welcome{text-align:center;padding:6px 0 10px}.welcome img{border-radius:22px;box-shadow:0 10px 30px rgba(0,0,0,.5);margin-bottom:10px}
+.welcome p{margin-bottom:10px}

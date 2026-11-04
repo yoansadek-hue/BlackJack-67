@@ -3,6 +3,7 @@ import { $, $$, fmt, esc, toast, sheet, closeSheet, sfx, vib } from './util.js';
 import { profile, stats, settings, friends, save, resetAll, ALPHA } from './store.js';
 import * as net from './net.js';
 import * as table from './table.js';
+import * as auth from './auth.js';
 
 // ---------- Apparence ----------
 function applyLook() { document.body.dataset.theme = profile.theme; document.body.dataset.back = profile.back; }
@@ -191,10 +192,37 @@ net.on('invite', c => {
 });
 
 // ---------- Profil ----------
+const GOOGLE = '<svg viewBox="0 0 24 24" width="20" height="20"><path fill="#4285F4" d="M23.5 12.3c0-.8-.1-1.6-.2-2.3H12v4.5h6.5a5.6 5.6 0 0 1-2.4 3.6v3h3.9c2.3-2.1 3.5-5.2 3.5-8.8z"/><path fill="#34A853" d="M12 24c3.2 0 6-1.1 8-2.9l-3.9-3a7.2 7.2 0 0 1-10.8-3.8h-4v3.1A12 12 0 0 0 12 24z"/><path fill="#FBBC05" d="M5.3 14.3a7.2 7.2 0 0 1 0-4.6V6.6h-4a12 12 0 0 0 0 10.8l4-3.1z"/><path fill="#EA4335" d="M12 4.8c1.8 0 3.3.6 4.6 1.8l3.4-3.4A12 12 0 0 0 1.3 6.6l4 3.1A7.2 7.2 0 0 1 12 4.8z"/></svg>';
+async function googleLogin() {
+  try { await auth.signIn(); closeSheet(); toast('Connecté avec Google'); }
+  catch (e) { if (!/popup-closed|cancelled/.test(e.code || '')) toast('Connexion Google impossible', { cls: 'bad' }); }
+}
+function accountHTML() {
+  const u = auth.currentUser();
+  return u ? `<div class="panel acct"><div class="who"><b>Connecté avec Google</b><small>${esc(u.email || u.displayName || '')} · progression sauvegardée</small></div><button class="btn sm" id="logout">Se déconnecter</button></div>`
+           : `<div class="panel acct"><div class="who"><b>Mode invité</b><small>Connecte-toi pour garder ta progression sur tous tes appareils</small></div></div>
+              <button class="btn full gbtn" id="login">${GOOGLE}Se connecter avec Google</button>`;
+}
+function bindAccount() {
+  const i = $('#login'), o = $('#logout');
+  if (i) i.onclick = googleLogin;
+  if (o) o.onclick = async () => { await auth.logout(); toast('Déconnecté'); };
+}
+function welcome() {
+  const el = sheet(`<div class="welcome"><img src="icons/icon.svg" alt="" width="84" height="84"><h2>Bienvenue sur Blackoff</h2>
+    <p>Le blackjack simple, en solo ou en ligne avec tes amis.</p></div>
+    <button class="btn full gbtn" id="wLogin">${GOOGLE}Se connecter avec Google</button>
+    <button class="btn full" id="wGuest">Jouer en invité</button>`);
+  const done = () => { profile.welcomed = true; save(true); };
+  el.querySelector('#wLogin').onclick = () => { done(); googleLogin(); };
+  el.querySelector('#wGuest').onclick = () => { done(); closeSheet(); };
+}
+
 function renderProfile() {
   const acc = stats.dec ? Math.round(100 * stats.good / stats.dec) + '%' : '–';
   const wr = stats.hands ? Math.round(100 * stats.won / stats.hands) + '%' : '–';
   $('#profile').innerHTML = `<div class="phead"><div class="av big">${esc(profile.name[0] || '?')}</div><b>${esc(profile.name)}</b><small>Code ${profile.code}</small></div>
+    ${accountHTML()}
     <div class="stats">
       <div class="stat"><b>${fmt(profile.bank)}</b><span>Jetons</span></div>
       <div class="stat"><b>${fmt(stats.best)}</b><span>Meilleur solde</span></div>
@@ -205,6 +233,7 @@ function renderProfile() {
       <div class="stat"><b>${stats.bestStreak}</b><span>Meilleure série</span></div>
       <div class="stat"><b>${fmt(stats.online)}</b><span>Mains en ligne</span></div>
     </div>`;
+  bindAccount();
 }
 
 // ---------- Réglages ----------
@@ -241,6 +270,9 @@ $('#sheet').addEventListener('click', e => { if (e.target.id === 'sheet') closeS
 applyLook(); save();
 TABS.forEach(t => t.classList.toggle('on', t.dataset.go === cur));
 renderHome(); requestAnimationFrame(() => placePill(2));
+auth.init();
+auth.onUser(u => { if (u) profile.welcomed = true; if (cur === 's-profile') renderProfile(); });
+if (!profile.welcomed) setTimeout(() => { if (!auth.currentUser() && !profile.welcomed) welcome(); }, 900);
 const status = $('#netStatus');
 net.init(profile.code)
   .then(() => { status.classList.add('on'); status.innerHTML = `<i></i>En ligne · ton code <b>&nbsp;${profile.code}</b>`; })
