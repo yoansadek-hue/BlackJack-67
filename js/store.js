@@ -13,17 +13,19 @@ export const profile = Object.assign({
   bank: START_BANK,
   owned: ['back:stripes', 'av:a0'],
   back: 'stripes',
-  avatar: 'a0',
+  look: { skin: 1, hair: 'court', hc: 'brun', eyes: 'points', mouth: 'sourire', acc: 'aucun', bg: 'ardoise' },
+  cos: { frame: 'none', banner: 'plain', title: '', nc: 'blanc' },
   stake: 0,
 }, get('profile', {}));
 if (!profile.owned.includes('back:' + profile.back)) { profile.back = 'stripes'; }
 if (!profile.owned.includes('back:stripes')) profile.owned.push('back:stripes');
-if (!profile.owned.includes('av:a0')) profile.owned.push('av:a0');
-if (!/^a\d+$/.test(profile.avatar || '')) profile.avatar = 'a0'; // anciens avatars emoji
+if (!profile.look || typeof profile.look !== 'object') profile.look = { skin: 1, hair: 'court', hc: 'brun', eyes: 'points', mouth: 'sourire', acc: 'aucun', bg: 'ardoise' };
+if (!profile.cos || typeof profile.cos !== 'object') profile.cos = { frame: 'none', banner: 'plain', title: '', nc: 'blanc' };
+delete profile.avatar; // ancien format
 
 export const stats = Object.assign({
   hands: 0, won: 0, lost: 0, push: 0, bj: 0, dec: 0, good: 0,
-  best: START_BANK, streak: 0, bestStreak: 0, online: 0, tours: 0, tourWins: 0, ach: {},
+  best: START_BANK, streak: 0, bestStreak: 0, online: 0, tours: 0, tourWins: 0, ach2: {}, dblWon: 0, week: '', weekNet: 0,
 }, get('stats', {}));
 
 export const settings = Object.assign({ sound: true, vibrate: true, hints: false, trainer: false, odds: true }, get('settings', {}));
