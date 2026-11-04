@@ -151,7 +151,7 @@ export class Table {
     this.busy = true;
     if (a === 'H') h.cards.push(this.draw());
     else if (a === 'S') h.done = true;
-    else if (a === 'D') { s.bank -= h.bet; h.bet *= 2; h.cards.push(this.draw()); h.done = true; }
+    else if (a === 'D') { s.bank -= h.bet; h.bet *= 2; h.dbl = true; h.cards.push(this.draw()); h.done = true; }
     else if (a === 'P') {
       s.bank -= h.bet;
       const c = h.cards.pop(), nh = { cards: [c], bet: h.bet, split: true };

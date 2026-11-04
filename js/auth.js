@@ -41,6 +41,29 @@ export async function signInRedirect() {
 export async function logout() { if (fb) await fb.signOut(fb.auth); location.reload(); }
 
 const ref = () => fb.doc(fb.db, COLLECTION, user.uid);
+
+// ---------- Classement de la semaine ----------
+export function weekKey(d = new Date()) {
+  const t = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+  const day = t.getUTCDay() || 7; t.setUTCDate(t.getUTCDate() + 4 - day);
+  const y = t.getUTCFullYear(), w = Math.ceil(((t - Date.UTC(y, 0, 1)) / 864e5 + 1) / 7);
+  return y + '-S' + String(w).padStart(2, '0');
+}
+let boardTimer = null;
+export function pushBoard(entry) {
+  if (!user || !fb) return;
+  clearTimeout(boardTimer);
+  boardTimer = setTimeout(async () => {
+    try { await fb.setDoc(fb.doc(fb.db, 'blackoff_board', weekKey(), 'players', user.uid), JSON.parse(JSON.stringify({ ...entry, at: Date.now() }))); }
+    catch (e) { console.warn('Classement :', e.message); }
+  }, 2000);
+}
+export async function fetchBoard() {
+  if (!user || !fb) throw new Error('offline');
+  const q = fb.query(fb.collection(fb.db, 'blackoff_board', weekKey(), 'players'), fb.orderBy('score', 'desc'), fb.limit(20));
+  const snap = await fb.getDocs(q);
+  return snap.docs.map(d => ({ uid: d.id, me: d.id === user.uid, ...d.data() }));
+}
 const writeLocal = obj => KEYS.forEach(k => { try { obj[k] == null ? localStorage.removeItem(STORE_PREFIX + k) : localStorage.setItem(STORE_PREFIX + k, JSON.stringify(obj[k])); } catch (e) {} });
 
 // Récupère la sauvegarde du compte. Renvoie false si la page va se recharger.

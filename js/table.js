@@ -1,5 +1,7 @@
 // Écran de jeu : affiche la table et relie les boutons au moteur (local, hôte ou invité)
-import { $, $$, fmt, esc, sfx, vib, toast, avHTML, paintAv, sheet, closeSheet } from './util.js';
+import { $, $$, fmt, esc, sfx, vib, toast, sheet, closeSheet } from './util.js';
+import { avHTML, paintAv, nameHTML, myPub, cleanPub } from './cosmetics.js';
+import { weekKey } from './auth.js';
 import { Table, total, isBJ, best, canDouble, canSplit, odds, STAKES, TOUR } from './engine.js';
 import { profile, stats, settings, save, START_BANK } from './store.js';
 import * as net from './net.js';
@@ -10,7 +12,8 @@ const reacts = new Map();
 
 const NAMES = { H: 'Tirer', S: 'Rester', D: 'Doubler', P: 'Séparer' };
 let ctl = null, snap = null, pend = 0, lastBet = 0, applied = 0, sent = false, ticker = null, onExit = () => {};
-let oddsKey = '';
+let oddsKey = '', onSettle = () => {};
+export const setOnSettle = fn => { onSettle = fn; };
 
 export const isPlaying = () => !!ctl;
 export const hosting = () => !!(ctl && ctl.host);
@@ -29,7 +32,7 @@ export function startLocal(mode, st = profile.stake) {
   const t = new Table({ online: false, stake: st, onChange: ev => update(t.snapshot(), ev) });
   begin({ mode, stake: st, label: mode === 'train' ? 'Entraî&shy;nement' : STAKES[st].name, myId: 'me', table: t, send: m => apply(t, 'me', m), leave: () => t.stop() });
   setInfo();
-  t.addSeat('me', profile.name, profile.avatar);
+  t.addSeat('me', profile.name, myPub());
 }
 
 // Héberger une table : les invités se connectent avec notre code
@@ -40,7 +43,7 @@ export function startHost(label, extra = {}) {
     onChange: ev => { const s = t.snapshot(); update(s, ev); guests.forEach(c => { try { c.send({ t: 'state', s, ev }); } catch (e) {} }); },
   });
   net.on('join', c => {
-    if (!ctl || ctl.table !== t || !t.addSeat(c.peer, String(c.metadata.name || 'Joueur').slice(0, 16), String(c.metadata.avatar || 'a0').slice(0, 4))) {
+    if (!ctl || ctl.table !== t || !t.addSeat(c.peer, String(c.metadata.name || 'Joueur').slice(0, 16), cleanPub(c.metadata.pub))) {
       c.send({ t: ctl && ctl.table === t ? 'full' : 'nohost' }); return setTimeout(() => c.close(), 600);
     }
     guests.set(c.peer, c);
@@ -57,13 +60,13 @@ export function startHost(label, extra = {}) {
     leave: () => { net.on('join', null); guests.forEach(c => c.close()); t.stop(); extra.onLeave && extra.onLeave(); },
   });
   setInfo();
-  t.addSeat(me, profile.name, profile.avatar);
+  t.addSeat(me, profile.name, myPub());
 }
 
 // Rejoindre la table d'un autre joueur
 export async function startGuest(code, label = 'En ligne') {
   let c;
-  try { c = await net.connect(code, { kind: 'join', name: profile.name, avatar: profile.avatar }); }
+  try { c = await net.connect(code, { kind: 'join', name: profile.name, pub: myPub() }); }
   catch (e) { toast('Ce joueur est hors ligne', { cls: 'bad' }); return false; }
   begin({ mode: 'guest', label, myId: net.myId(), conn: c, send: m => c.send(m), leave: () => c.close() });
   setInfo();
@@ -106,7 +109,7 @@ function displayBank() {
   if (snap.phase === 'over') return base;
   return me.out ? base : base - wagered(me);
 }
-function setInfo() { $('#tMode').innerHTML = snap && snap.tour ? `Main<br>${Math.min(snap.tour.hands, snap.round + (snap.phase === 'bet' ? 1 : 0))}/${snap.tour.hands}` : ctl.label; $$('[data-av]').forEach(e => paintAv(e, profile.avatar, profile.name)); }
+function setInfo() { $('#tMode').innerHTML = snap && snap.tour ? `Main<br>${Math.min(snap.tour.hands, snap.round + (snap.phase === 'bet' ? 1 : 0))}/${snap.tour.hands}` : ctl.label; $$('[data-av]').forEach(e => paintAv(e, myPub())); }
 
 function update(s, ev) {
   if (!ctl) return;
@@ -122,7 +125,12 @@ function settle() {
   const me = mySeat();
   if (!me || (snap.phase !== 'bet' && snap.phase !== 'over') || me.net == null || snap.round <= applied) return;
   applied = snap.round;
-  if (!snap.tour) profile.bank += me.net;
+  if (!snap.tour) {
+    profile.bank += me.net;
+    const wk = weekKey(); if (stats.week !== wk) { stats.week = wk; stats.weekNet = 0; }
+    stats.weekNet += me.net;
+  }
+  stats.dblWon = (stats.dblWon || 0) + me.hands.filter(h => h.dbl && h.res === 'win').length;
   for (const h of me.hands) {
     stats.hands++;
     if (h.res === 'win') { stats.won++; stats.streak++; if (h.bj) stats.bj++; }
@@ -137,7 +145,7 @@ function settle() {
   else msg('Égalité');
   if (!snap.tour && profile.bank < STAKES[0].min) { profile.bank = START_BANK; toast(`Plus de jetons : on te recharge ${fmt(START_BANK)}`); }
   if (lastBet > avail()) lastBet = 0;
-  save(); checkAch();
+  save(); checkAch(); onSettle();
 }
 
 function showRanking() {
@@ -148,7 +156,7 @@ function showRanking() {
   if (won) { stats.tourWins++; profile.bank += snap.tour.prize; sfx.win(); }
   save(); checkAch();
   const el = sheet(`<h2>${won ? 'Tu gagnes le tournoi' : 'Tournoi terminé'}</h2><p>${won ? `+${fmt(snap.tour.prize)} jetons ajoutés à ton solde.` : 'Bien joué. Retente ta chance !'}</p>
-    <div class="rank">${list.map((x, i) => `<div><span class="pos">${i + 1}</span>${avHTML(x.avatar, x.name)}<span class="nm">${esc(x.name)}</span><b>${fmt(x.tbank)}</b></div>`).join('')}</div>
+    <div class="rank">${list.map((x, i) => `<div><span class="pos">${i + 1}</span>${avHTML(x.avatar, x.name)}<span class="nm">${nameHTML(x.name, x.avatar)}</span><b>${fmt(x.tbank)}</b></div>`).join('')}</div>
     <button class="btn white full" id="tourOk">Quitter la table</button>`);
   el.querySelector('#tourOk').onclick = () => { closeSheet(); exit(true); };
 }
@@ -207,7 +215,7 @@ function render() {
   $('#others').innerHTML = s.seats.filter(x => x.id !== ctl.myId).map(x => {
     const h = x.hands[x.cur] || x.hands[0];
     const info = s.phase === 'lobby' || s.phase === 'over' ? (s.tour ? fmt(x.tbank) : '') : x.out ? 'attend' : s.phase === 'bet' ? (x.ready ? fmt(x.bet) : s.tour ? fmt(x.tbank) : 'mise…') : h ? handLabel(h) : '';
-    return `<div class="pl${turnId === x.id ? ' turn' : ''}${x.out ? ' out' : ''}">${bubble(x.id)}${avHTML(x.avatar, x.name)}<span>${esc(x.name)}</span><b>${info}</b><span class="mini">${x.hands.map(tag).join('')}</span></div>`;
+    return `<div class="pl${turnId === x.id ? ' turn' : ''}${x.out ? ' out' : ''}" data-pid="${esc(x.id)}">${bubble(x.id)}${avHTML(x.avatar, x.name)}${nameHTML(x.name, x.avatar)}<b>${info}</b><span class="mini">${x.hands.map(tag).join('')}</span></div>`;
   }).join('') || (ctl.waiting ? '<div class="pl"><span class="av dots"></span><span>Recherche…</span></div>' : '');
 
   const ph = $('#pHands');
@@ -325,3 +333,33 @@ document.addEventListener('keydown', e => {
 });
 
 export function setWaiting(on) { if (ctl) { ctl.waiting = on; render(); } }
+
+// ---------- Fiche de statistiques (appui sur un avatar) ----------
+const DEALER_BUST = { 2: 35, 3: 38, 4: 40, 5: 43, 6: 42, 7: 26, 8: 24, 9: 23, 10: 21, 11: 12 };
+function bustIfHit(cards) {
+  const { t, soft } = total(cards);
+  if (soft || t <= 11) return 0;
+  let n = 0; for (let v = 1; v <= 13; v++) if (t + Math.min(v, 10) > 21) n++;
+  return Math.round(100 * n / 13);
+}
+const statCell = (label, value, cls = '') => `<div class="sc-cell"><small>${label}</small><b class="${cls}">${value}</b></div>`;
+function showStats(seat) {
+  if (!snap || !seat) return;
+  const pub = seat.avatar || {}, mine = seat.id === ctl.myId;
+  const h = seat.hands[seat.cur] || seat.hands[0];
+  const live = snap.phase === 'play' || snap.phase === 'deal';
+  let cells = '';
+  if (h && h.cards.length && snap.dealer.length && !h.res && live) {
+    const o = isBJ(h) ? { win: 1, push: 0 } : odds(h.cards, snap.dealer[0]);
+    const up = snap.dealer[0].r === 'A' ? 11 : ['J', 'Q', 'K', '10'].includes(snap.dealer[0].r) ? 10 : +snap.dealer[0].r;
+    cells = statCell('Victoire', Math.round((o ? o.win : 0) * 100) + '%', 'hi') + statCell('Sauter si tu tires', bustIfHit(h.cards) + '%')
+      + statCell('Croupier saute', (DEALER_BUST[up] || 0) + '%') + statCell('Main', handLabel(h));
+  } else {
+    cells = statCell('Niveau', pub.lvl || 1, 'hi') + statCell('Mains gagnées', (pub.wr || 0) + '%') + statCell('Mains jouées', fmt(pub.hands || 0)) + statCell('Blackjacks', fmt(pub.bj || 0));
+  }
+  sheet(`<div class="statsheet">${avHTML(pub, seat.name, 'lg')}${nameHTML(seat.name, pub)}${pub.title ? `<small class="ptitle">${esc(pub.title)}</small>` : ''}
+    <small class="muted">${mine ? 'Toi' : 'Niveau ' + (pub.lvl || 1)} · ${snap.tour ? fmt(seat.tbank) + ' jetons de tournoi' : mine ? fmt(profile.bank) + ' jetons' : ''}</small>
+    <div class="sc-grid">${cells}</div></div>`);
+}
+$('#dock .mebox').addEventListener('click', () => showStats(mySeat()));
+$('#others').addEventListener('click', e => { const p = e.target.closest('[data-pid]'); if (p && snap) showStats(snap.seats.find(x => x.id === p.dataset.pid)); });

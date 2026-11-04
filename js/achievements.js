@@ -1,41 +1,49 @@
-// Succès : objectifs débloqués en jouant, chacun rapporte des jetons
+// Succès évolutifs : chaque succès a 4 paliers (Bronze, Argent, Or, Diamant) qui rapportent des jetons
+// et débloquent parfois des éléments exclusifs de la Boutique.
 import { stats, profile, friends, save } from './store.js';
 import { toast, fmt, sfx } from './util.js';
 
-const acc = () => stats.dec >= 100 ? Math.round(100 * stats.good / stats.dec) : 0;
+export const TIERS = ['Bronze', 'Argent', 'Or', 'Diamant'];
+const REWARD = [150, 600, 2000, 8000];
+const acc = () => stats.dec >= 50 ? Math.round(100 * stats.good / stats.dec) : 0;
 export const ACH = [
-  { id: 'win1', name: 'Première victoire', desc: 'Gagne ta première main', goal: 1, val: () => stats.won, reward: 100 },
-  { id: 'bj1', name: 'Vingt-et-un', desc: 'Obtiens un blackjack', goal: 1, val: () => stats.bj, reward: 200 },
-  { id: 'h100', name: 'Habitué', desc: 'Joue 100 mains', goal: 100, val: () => stats.hands, reward: 500 },
-  { id: 's5', name: 'En feu', desc: 'Gagne 5 mains d\'affilée', goal: 5, val: () => stats.bestStreak, reward: 500 },
-  { id: 'f3', name: 'Bien entouré', desc: 'Ajoute 3 amis', goal: 3, val: () => friends.length, reward: 300 },
-  { id: 'on50', name: 'Connecté', desc: 'Joue 50 mains en ligne', goal: 50, val: () => stats.online, reward: 1000 },
-  { id: 'r10k', name: 'Gros joueur', desc: 'Atteins 10 000 jetons', goal: 10000, val: () => stats.best, reward: 1000 },
-  { id: 'bj25', name: 'Collectionneur', desc: 'Obtiens 25 blackjacks', goal: 25, val: () => stats.bj, reward: 1500 },
-  { id: 'strat', name: 'Stratège', desc: '90 % de bons coups sur au moins 100 décisions', goal: 90, val: acc, reward: 1500 },
-  { id: 'tour1', name: 'Champion', desc: 'Gagne un tournoi', goal: 1, val: () => stats.tourWins, reward: 1000 },
-  { id: 's10', name: 'Intouchable', desc: 'Gagne 10 mains d\'affilée', goal: 10, val: () => stats.bestStreak, reward: 2500 },
-  { id: 'h1000', name: 'Vétéran', desc: 'Joue 1 000 mains', goal: 1000, val: () => stats.hands, reward: 3000 },
-  { id: 'r100k', name: 'Légende', desc: 'Atteins 100 000 jetons', goal: 100000, val: () => stats.best, reward: 5000 },
+  { id: 'hands', name: 'Habitué', unit: 'mains jouées', goals: [25, 250, 1000, 5000], val: () => stats.hands },
+  { id: 'win', name: 'Gagnant', unit: 'mains gagnées', goals: [10, 100, 500, 2500], val: () => stats.won },
+  { id: 'bj', name: 'Vingt-et-un', unit: 'blackjacks', goals: [1, 10, 50, 250], val: () => stats.bj },
+  { id: 'streak', name: 'En feu', unit: "victoires d'affilée", goals: [3, 5, 8, 12], val: () => stats.bestStreak },
+  { id: 'rich', name: 'Gros joueur', unit: 'jetons au maximum', goals: [2500, 10000, 50000, 250000], val: () => stats.best },
+  { id: 'double', name: 'Audacieux', unit: 'doubles gagnés', goals: [5, 40, 150, 600], val: () => stats.dblWon || 0 },
+  { id: 'online', name: 'Connecté', unit: 'mains en ligne', goals: [10, 100, 500, 2000], val: () => stats.online },
+  { id: 'strat', name: 'Stratège', unit: '% de bons coups (min. 50 décisions)', goals: [70, 80, 90, 97], val: acc },
+  { id: 'tour', name: 'Champion', unit: 'tournois gagnés', goals: [1, 5, 20, 50], val: () => stats.tourWins || 0 },
+  { id: 'friends', name: 'Bien entouré', unit: 'amis', goals: [1, 3, 8, 15], val: () => friends.length },
 ];
 
+// Palier atteint (0 = aucun, 1..4)
+export const tierOf = a => a.goals.filter(g => a.val() >= g).length;
+export const reached = (id, tier) => { const a = ACH.find(x => x.id === id); return !!a && (stats.ach2 || {})[id] >= tier; };
+
 export function checkAch() {
-  stats.ach = stats.ach || {};
+  stats.ach2 = stats.ach2 || {};
   let any = false;
   for (const a of ACH) {
-    if (stats.ach[a.id] || a.val() < a.goal) continue;
-    stats.ach[a.id] = Date.now(); profile.bank += a.reward; any = true;
-    toast(`Succès débloqué · <b>${a.name}</b> · +${fmt(a.reward)}`, { ms: 4000 });
+    const t = tierOf(a), had = stats.ach2[a.id] || 0;
+    if (t <= had) continue;
+    for (let k = had; k < t; k++) { profile.bank += REWARD[k]; toast(`${a.name} · palier <b>${TIERS[k]}</b> · +${fmt(REWARD[k])}`, { ms: 4000 }); }
+    stats.ach2[a.id] = t; any = true;
   }
   if (any) { sfx.win(); save(); }
 }
 
 export function achHTML() {
-  stats.ach = stats.ach || {};
-  const n = ACH.filter(a => stats.ach[a.id]).length;
-  return `<h2 class="h">Succès · ${n}/${ACH.length}</h2><div class="achs">${ACH.map(a => {
-    const done = !!stats.ach[a.id], p = Math.min(1, a.val() / a.goal);
-    return `<div class="ach${done ? ' done' : ''}"><b>${a.name}</b><small>${a.desc}</small>
-      <span class="rw"><i class="coin"></i>${fmt(a.reward)}</span><span class="prog"><i style="width:${Math.round(p * 100)}%"></i></span></div>`;
+  stats.ach2 = stats.ach2 || {};
+  const total = ACH.reduce((n, a) => n + (stats.ach2[a.id] || 0), 0);
+  return `<h2 class="h">Succès · ${total}/${ACH.length * 4} paliers</h2><div class="achs">${ACH.map(a => {
+    const t = stats.ach2[a.id] || 0, v = a.val(), next = a.goals[t];
+    const prev = t ? a.goals[t - 1] : 0, p = next ? Math.min(1, (v - prev) / (next - prev)) : 1;
+    return `<div class="ach t${t}"><div class="tiers">${TIERS.map((n, i) => `<i class="${i < t ? 'on' : ''}" title="${n}"></i>`).join('')}</div>
+      <b>${a.name}</b><small>${next ? `${fmt(Math.min(v, next))} / ${fmt(next)} ${a.unit}` : `Diamant · ${fmt(v)} ${a.unit}`}</small>
+      <span class="rw">${t ? `<em>${TIERS[t - 1]}</em>` : ''}${next ? `<i class="coin"></i>${fmt(REWARD[t])}` : ''}</span>
+      <span class="prog"><i style="width:${Math.round(Math.max(0, p) * 100)}%"></i></span></div>`;
   }).join('')}</div>`;
 }
