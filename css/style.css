@@ -566,3 +566,66 @@ body[data-felt=marbre] #s-table{background:repeating-linear-gradient(115deg,rgba
 .flychip{position:fixed;z-index:95;pointer-events:none}
 @media (max-width:400px){.mebox{width:112px;padding:12px}.mrow b{font-size:22px}.mrow + .mrow b{font-size:18px}}
 @media (min-width:768px){.mebox{width:150px}.mrow b{font-size:30px}}
+
+/* ===== v6 : écran de chargement, table épurée ===== */
+#gate{transition:opacity .25s}
+#gate.boot .gate-act,#gate.boot .gate-in p,#gate.boot .wordmark{visibility:hidden}
+.spin{display:none;width:26px;height:26px;border-radius:50%;border:2.5px solid rgba(255,255,255,.15);border-top-color:#fff;animation:spin .8s linear infinite;margin-top:18px}
+#gate.boot .spin{display:block}
+#gate:not(.boot) .gate-in{animation:none}
+@keyframes spin{to{transform:rotate(360deg)}}
+/* haut de la table */
+.ttop{align-items:center;min-height:0;padding:14px 0 8px}
+.tbal{flex:1;display:flex;align-items:center;justify-content:center;gap:8px;font-size:22px;font-weight:600;letter-spacing:-.02em}
+.tright{display:flex;align-items:center;gap:8px;min-width:38px;justify-content:flex-end}
+.tinfo{width:auto;font-size:11px}
+.players{justify-content:center;gap:14px;min-height:0;padding:0 0 4px}
+.players:empty{display:none}
+/* croupier et joueur : total sur le côté */
+.dealer{gap:16px}
+.hand{flex-direction:row;align-items:center;gap:14px}
+.hand .side{display:flex;flex-direction:column;align-items:flex-start;gap:6px;min-width:44px}
+.hand .tot{font-size:30px;font-weight:700;letter-spacing:-.04em}
+.hand .tot.bust{color:var(--red)}
+.hands{flex-direction:column;align-items:center;gap:10px}
+.hands.multi{flex-direction:row;flex-wrap:wrap}
+.hands.multi .hand .tot{font-size:20px}
+/* pile de jetons au centre, montant dans le jeton */
+#pot{height:64px}
+.potchip,.flychip{width:52px;height:52px;display:grid;place-items:center}
+.potchip b{font-size:12px;font-weight:800;color:#fff;letter-spacing:-.02em;position:relative;z-index:1}
+.potchip.light b{color:#000}
+.potchip::after{display:none}
+.flychip{width:46px;height:46px}
+/* jetons pour miser, au milieu */
+.mid{flex:1;display:flex;align-items:center;justify-content:center;min-height:0}
+#betUI{width:100%}
+#betUI .chips{display:flex;justify-content:center;gap:14px;margin:0;flex-wrap:wrap}
+#betUI .chip{width:68px;height:68px;border-radius:50%;background:var(--c);padding:0;
+  box-shadow:inset 0 0 0 5px rgba(0,0,0,.22),inset 0 0 0 8px var(--c),inset 0 0 0 10px rgba(255,255,255,.55),0 8px 18px rgba(0,0,0,.55);
+  display:grid;place-items:center;transition:transform .12s}
+#betUI .chip b{font-size:15px;font-weight:800;color:#fff}
+#betUI .chip.light b{color:#000}
+#betUI .chip:active{transform:scale(.9)}
+#betUI .chip:disabled{opacity:.25}
+#oddsLine{height:30px;display:flex;align-items:center;justify-content:center;gap:8px;font-size:13px;color:var(--muted);font-weight:600}
+#oddsLine b{color:#fff;font-size:15px}#oddsLine b.lo{color:var(--red)}
+#oddsLine i{width:3px;height:3px;border-radius:50%;background:var(--dim)}
+/* boutons ronds, clairs */
+#dock{display:block;position:relative;padding-bottom:4px}
+.acts{display:flex;justify-content:center;gap:18px}
+.rbtn{display:flex;flex-direction:column;align-items:center;gap:7px;min-width:70px}
+.rbtn .ri{width:66px;height:66px;border-radius:50%;background:var(--s2);display:grid;place-items:center;transition:transform .12s,background .2s}
+.rbtn .ri svg{width:26px;height:26px}
+.rbtn .rl{font-size:13px;font-weight:600;color:#c7c7cc}
+.rbtn:active .ri{transform:scale(.92)}
+.rbtn.main .ri{background:#fff;color:#000;width:76px;height:76px}
+.rbtn.main .rl{color:#fff}
+.rbtn:disabled{opacity:.3;pointer-events:none}
+.rbtn.hint .ri{box-shadow:0 0 0 2px #fff}
+.wait{min-height:96px;background:none}
+#meBubble{left:50%;top:-6px}
+@media (min-width:768px){.rbtn .ri{width:76px;height:76px}.rbtn.main .ri{width:86px;height:86px}#betUI .chip{width:80px;height:80px}.hand .tot{font-size:36px}}
+@media (max-height:700px){.rbtn .ri{width:56px;height:56px}.rbtn.main .ri{width:64px;height:64px}#betUI .chip{width:58px;height:58px}}
+#playUI.acts,#betAct.acts{display:flex;grid-template-columns:none;flex-wrap:nowrap}
+@media (max-width:380px){.acts{gap:10px}.rbtn{min-width:60px}}

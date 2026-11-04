@@ -385,6 +385,6 @@ function boot() {
 if (location.hostname === 'localhost' && location.hash === '#dev') boot(); // test local uniquement
 else auth.start({
   onReady: boot,
-  onLogin: () => { document.body.classList.add('locked'); loginBtn.disabled = false; gateMsg.textContent = 'Ta progression est sauvegardée sur ton compte.'; },
-  onError: () => { gateMsg.innerHTML = 'Impossible de charger la connexion. <a href="" style="color:#fff">Réessayer</a>'; },
+  onLogin: () => { document.body.classList.add('locked'); $('#gate').classList.remove('boot'); loginBtn.disabled = false; gateMsg.textContent = 'Ta progression est sauvegardée sur ton compte.'; },
+  onError: () => { $('#gate').classList.remove('boot'); gateMsg.innerHTML = 'Impossible de charger la connexion. <a href="" style="color:#fff">Réessayer</a>'; },
 });
