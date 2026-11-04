@@ -49,14 +49,23 @@ async function sync(u) {
   try { const snap = await fb.getDoc(ref()); cloud = snap.exists() ? snap.data() : null; }
   catch (e) { console.warn('Sauvegarde cloud indisponible :', e.message); }
   const mine = profile.uid === u.uid;
-  if (cloud && cloud.profile && (!mine || (cloud.profile.at || 0) > (profile.at || 0))) {
-    writeLocal(cloud); location.reload(); return false; // la sauvegarde du compte remplace celle de l'appareil
+  // Sécurité : jamais plus de 2 rechargements automatiques de suite
+  let n = 0; try { n = +sessionStorage.getItem('blackoff_reloads') || 0; } catch (e) {}
+  const reload = () => { try { sessionStorage.setItem('blackoff_reloads', n + 1); } catch (e) {} location.reload(); return false; };
+  if (n < 2) {
+    if (cloud && cloud.profile && (!mine || (cloud.profile.at || 0) > (profile.at || 0))) {
+      cloud.profile.uid = u.uid; // la sauvegarde est rattachée à ce compte
+      writeLocal(cloud); return reload(); // la sauvegarde du compte remplace celle de l'appareil
+    }
+    if (!cloud && profile.uid && !mine) { // autre compte sur cet appareil : on repart de zéro
+      writeLocal({ profile: { uid: u.uid } }); return reload();
+    }
   }
-  if (!cloud && profile.uid && !mine) { // autre compte sur cet appareil : on repart de zéro
-    writeLocal({ profile: { uid: u.uid } }); location.reload(); return false;
-  }
-  if (!profile.uid) {
-    profile.uid = u.uid;
+  try { sessionStorage.removeItem('blackoff_reloads'); } catch (e) {}
+  if (cloud && cloud.profile && !mine) Object.assign(profile, cloud.profile); // secours si le rechargement n'a pas suffi
+  profile.uid = u.uid;
+  if (!profile.named) {
+    profile.named = true;
     if (u.displayName && /^Joueur\d+$/.test(profile.name)) profile.name = u.displayName.split(' ')[0].slice(0, 16);
   }
   save(); push();
