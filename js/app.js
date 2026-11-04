@@ -1,12 +1,13 @@
 // Application : navigation, barre d'onglets, accueil, boutique, amis, profil, réglages
 import { $, $$, fmt, esc, toast, sheet, closeSheet, sfx, vib } from './util.js';
 import { profile, stats, settings, friends, save, resetAll, ALPHA } from './store.js';
+import { STAKES } from './engine.js';
 import * as net from './net.js';
 import * as table from './table.js';
 import * as auth from './auth.js';
 
 // ---------- Apparence ----------
-function applyLook() { document.body.dataset.theme = profile.theme; document.body.dataset.back = profile.back; }
+function applyLook() { document.body.dataset.back = profile.back; $$('[data-av]').forEach(e => e.textContent = profile.avatar); }
 
 // ---------- Navigation + barre d'onglets en verre ----------
 const bar = $('#tabbar'), pill = $('#tabPill'), TABS = $$('.tab');
@@ -53,13 +54,24 @@ bar.addEventListener('pointerup', release);
 bar.addEventListener('pointercancel', () => { dragging = false; bar.classList.remove('press', 'drag'); placePill(TABS.findIndex(t => t.dataset.go === cur)); });
 addEventListener('resize', () => placePill(TABS.findIndex(t => t.dataset.go === cur)));
 
-// ---------- Accueil ----------
-const DAY = 864e5, BONUS = 500;
+// ---------- Accueil : niveaux de table ----------
+const STAKE_COLORS = ['#f5f5f7', '#64d2ff', '#bf5af2', '#ffd60a', '#ff453a'];
+const unlocked = lv => profile.bank >= lv.need || lv.id === 0;
 function renderHome() {
-  const ready = Date.now() - profile.lastBonus > DAY;
-  $('#bonus').innerHTML = ready ? `<div class="bonus"><div><b>Bonus du jour</b><span>+${fmt(BONUS)} jetons gratuits</span></div><button class="btn sm primary" id="getBonus">Récupérer</button></div>` : '';
-  if (ready) $('#getBonus').onclick = () => { profile.bank += BONUS; profile.lastBonus = Date.now(); save(); sfx.win(); toast(`<b>+${fmt(BONUS)}</b> jetons`); renderHome(); };
+  if (!unlocked(STAKES[profile.stake])) profile.stake = 0;
+  $('#stakes').innerHTML = STAKES.map(lv => `<button class="stake${lv.id === profile.stake ? ' sel' : ''}${unlocked(lv) ? '' : ' lock'}" data-st="${lv.id}">
+    <i class="dotc" style="background:${STAKE_COLORS[lv.id]}"></i>
+    <div><b>${lv.name}</b><br><small>Mise ${short(lv.min)} – ${short(lv.max)}</small></div>
+    <div><span class="amt">${unlocked(lv) ? short(lv.min) : short(lv.need)}</span><br><small>${unlocked(lv) ? 'mise minimum' : 'jetons requis'}</small></div></button>`).join('');
+  $$('[data-st]').forEach(b => b.onclick = () => {
+    const lv = STAKES[+b.dataset.st];
+    if (!unlocked(lv)) { vib(30); return toast(`Il te faut ${fmt(lv.need)} jetons pour la table ${lv.name}`, { cls: 'bad' }); }
+    profile.stake = lv.id; save(); sfx.tap(); renderHome();
+  });
+  $$('[data-av]').forEach(e => e.textContent = profile.avatar);
 }
+const short = v => v >= 1000 ? (v / 1000).toLocaleString('fr-FR') + 'k' : String(v);
+$('[data-go-profile]').onclick = () => go('s-profile');
 
 function openTable() { closeSheet(); go('s-table'); }
 table.setExit(() => { go('s-home'); stopQuick(); });
@@ -68,6 +80,7 @@ $$('[data-mode]').forEach(b => b.onclick = () => {
   sfx.tap();
   const m = b.dataset.mode;
   if (m === 'solo' || m === 'train') { table.startLocal(m); openTable(); }
+  else if (profile.bank < STAKES[profile.stake].min) toast('Pas assez de jetons pour cette table', { cls: 'bad' });
   else if (!net.online()) toast('Connexion au réseau impossible pour le moment', { cls: 'bad' });
   else if (m === 'quick') quick();
   else friendsSheet();
@@ -77,35 +90,36 @@ let stopQuick = () => {};
 function quick() {
   let hostingNow = false;
   stopQuick = net.quickMatch({
+    stake: profile.stake,
     onWaiting: () => {
       hostingNow = true;
-      table.startHost('Partie rapide', { onJoin: () => { table.setWaiting(false); stopQuick(); }, onLeave: () => stopQuick() });
+      table.startHost('Rapide', { onJoin: () => { table.setWaiting(false); stopQuick(); }, onLeave: () => stopQuick() });
       table.setWaiting(true); openTable();
     },
-    onFound: async code => { if (!hostingNow && await table.startGuest(code, 'Partie rapide')) openTable(); },
+    onFound: async code => { if (!hostingNow && await table.startGuest(code, 'Rapide')) openTable(); },
     onError: () => toast('Partie rapide indisponible', { cls: 'bad' }),
   });
   toast('<span class="dots">Recherche d\'une partie</span>', { ms: 2500 });
 }
 
 function friendsSheet(prefill = '') {
-  const el = sheet(`<h2>Jouer avec des amis</h2><p>Ouvre ta table : tes amis la rejoignent avec ton code. Jusqu'à 4 joueurs.</p>
-    <button class="btn primary full" id="hostBtn">Créer ma table · ${profile.code}</button>
+  const el = sheet(`<h2>Avec des amis</h2><p>Ouvre ta table ${STAKES[profile.stake].name} : tes amis la rejoignent avec ton code. Jusqu'à 4 joueurs.</p>
+    <button class="btn white full" id="hostBtn">Créer ma table · ${profile.code}</button>
     <div class="sep">ou</div>
     <form class="addf" id="joinForm"><input id="joinCode" maxlength="6" placeholder="Code de la table" value="${esc(prefill)}"><button class="btn">Rejoindre</button></form>
     ${friends.length ? '<div class="sep">inviter un ami</div><div class="list" id="invList"></div>' : ''}`);
   el.querySelector('#hostBtn').onclick = () => hostRoom();
   el.querySelector('#joinForm').onsubmit = async e => { e.preventDefault(); const c = clean($('#joinCode').value); if (c.length === 6) join(c); };
   if (friends.length) {
-    $('#invList').innerHTML = friends.map(f => `<div class="item"><div class="av">${esc(f.name[0] || '?')}</div><div class="who"><b>${esc(f.name)}</b><small>${f.code}</small></div><button class="btn sm primary" data-inv="${f.code}">Inviter</button></div>`).join('');
+    $('#invList').innerHTML = friends.map(f => `<div class="item"><div class="av">${esc(f.avatar || '🙂')}</div><div class="who"><b>${esc(f.name)}</b><small>${f.code}</small></div><button class="btn sm white" data-inv="${f.code}">Inviter</button></div>`).join('');
     $$('[data-inv]').forEach(b => b.onclick = () => invite(b.dataset.inv));
   }
 }
-function hostRoom() { if (!table.hosting()) table.startHost('Table de ' + profile.name); openTable(); toast(`Ton code de table : <b>${profile.code}</b>`, { ms: 5000 }); }
+function hostRoom() { if (!table.hosting()) table.startHost('Amis'); openTable(); toast(`Ton code de table : <b>${profile.code}</b>`, { ms: 5000 }); }
 async function join(code) {
   if (code === profile.code) return toast("C'est ton propre code", { cls: 'bad' });
   if (table.isPlaying()) table.exit(true);
-  if (await table.startGuest(code, 'Avec des amis')) openTable();
+  if (await table.startGuest(code, 'Amis')) openTable();
 }
 async function invite(code) {
   if (!net.online()) return toast('Hors ligne', { cls: 'bad' });
@@ -119,29 +133,29 @@ const clean = s => String(s).toUpperCase().split('').filter(c => ALPHA.includes(
 
 // ---------- Boutique ----------
 const SHOP = {
-  back: [['classic', 'Émeraude', 0], ['midnight', 'Minuit', 750], ['crimson', 'Carmin', 1500], ['carbon', 'Carbone', 2500], ['royal', 'Royal', 4000], ['gold', 'Or', 8000]],
-  theme: [['emerald', 'Vert', 0, '#3ddc97'], ['ocean', 'Océan', 1000], ['ruby', 'Rubis', 2000], ['violet', 'Violet', 3500], ['gold', 'Doré', 7500]],
+  av: [['🙂', 0], ['😎', 500], ['🤠', 800], ['🦊', 1200], ['🐼', 1500], ['🐯', 2000], ['🥷', 3000], ['🤖', 4000], ['👽', 6000], ['🦁', 9000], ['🐉', 15000], ['👑', 50000]],
+  back: [['stripes', 'Rayures', 0], ['dots', 'Points', 600], ['grid', 'Grille', 1200], ['waves', 'Ondes', 2500], ['noir', 'Noir', 5000], ['rouge', 'Rouge', 10000], ['or', 'Or', 40000]],
 };
-const THEME_COLORS = { emerald: '#3ddc97', ocean: '#4cc3ff', ruby: '#ff5c7a', violet: '#a68bff', gold: '#ffc857' };
 function renderShop() {
-  const cell = (kind, [id, name, price]) => {
-    const key = kind + ':' + id, own = profile.owned.includes(key), eq = profile[kind] === id;
-    const pv = kind === 'back' ? `<div class="pvback" style="${backStyle(id)}"></div>` : `<div class="pvtheme" style="border-color:${THEME_COLORS[id]};background:radial-gradient(${THEME_COLORS[id]}55,transparent 70%)"></div>`;
-    return `<button class="sitem${eq ? ' eq' : ''}" data-buy="${key}" data-price="${price}">${pv}<b>${name}</b><span class="price${own ? ' own' : ''}">${eq ? 'Équipé' : own ? 'Possédé' : '● ' + fmt(price)}</span></button>`;
-  };
-  $('#shop').innerHTML = `<div class="shopcat">Dos de cartes</div><div class="shopgrid">${SHOP.back.map(i => cell('back', i)).join('')}</div>
-    <div class="shopcat">Couleur de table</div><div class="shopgrid">${SHOP.theme.map(i => cell('theme', i)).join('')}</div>`;
+  const price = (key, p, eq) => `<span class="price${profile.owned.includes(key) ? ' own' : ''}">${eq ? 'Équipé' : profile.owned.includes(key) ? 'Possédé' : `<i class="coin"></i>${fmt(p)}`}</span>`;
+  $('#shop').innerHTML = `<h2 class="h">Avatars</h2><div class="shopgrid">${SHOP.av.map(([e, p]) => {
+      const key = 'av:' + e, eq = profile.avatar === e;
+      return `<button class="sitem${eq ? ' eq' : ''}" data-buy="${key}" data-price="${p}"><span class="av">${e}</span>${price(key, p, eq)}</button>`;
+    }).join('')}</div>
+    <h2 class="h">Dos de cartes</h2><div class="shopgrid">${SHOP.back.map(([id, name, p]) => {
+      const key = 'back:' + id, eq = profile.back === id;
+      return `<button class="sitem${eq ? ' eq' : ''}" data-buy="${key}" data-price="${p}"><span class="pvback ${id}"></span><b>${name}</b>${price(key, p, eq)}</button>`;
+    }).join('')}</div>`;
   $$('[data-buy]').forEach(b => b.onclick = () => buy(b.dataset.buy, +b.dataset.price));
 }
-const BACKS = { classic: ['#1f6f53', '#0e3b2c'], midnight: ['#2a3f8f', '#111a3d'], crimson: ['#b3243a', '#4a0a16'], carbon: ['#3a3e46', '#0d0e11'], royal: ['#7b4dff', '#2a1366'], gold: ['#f5c451', '#8a5a00'] };
-const backStyle = id => `background:linear-gradient(135deg,${BACKS[id][0]},${BACKS[id][1]})`;
 function buy(key, price) {
-  const [kind, id] = key.split(':');
+  const i = key.indexOf(':'), kind = key.slice(0, i), id = key.slice(i + 1);
   if (!profile.owned.includes(key)) {
     if (profile.bank < price) { toast('Pas assez de jetons', { cls: 'bad' }); vib(40); return; }
-    profile.bank -= price; profile.owned.push(key); sfx.win(); toast('Achat effectué');
+    profile.bank -= price; profile.owned.push(key); sfx.win(); toast('Débloqué');
   } else sfx.tap();
-  profile[kind] = id; applyLook(); save(); renderShop();
+  if (kind === 'av') profile.avatar = id; else profile.back = id;
+  applyLook(); save(); renderShop();
 }
 
 // ---------- Amis ----------
@@ -150,9 +164,9 @@ async function renderFriends() {
   const list = $('#friendList');
   if (!friends.length) { list.innerHTML = '<div class="empty">Aucun ami pour l\'instant.<br>Partage ton code pour jouer ensemble.</div>'; return; }
   list.innerHTML = '<div class="list">' + friends.map(f => `<div class="item" data-f="${f.code}">
-    <div class="av">${esc((f.name || '?')[0])}<i class="st"></i></div>
+    <div class="av">${esc(f.avatar || '🙂')}<i class="st"></i></div>
     <div class="who"><b>${esc(f.name)}</b><small class="fs">${f.code} · …</small></div>
-    <button class="btn sm primary" data-inv="${f.code}">Inviter</button>
+    <button class="btn sm white" data-inv="${f.code}">Inviter</button>
     <button class="btn sm" data-del="${f.code}" aria-label="Retirer">✕</button></div>`).join('') + '</div>';
   $$('#friendList [data-inv]').forEach(b => b.onclick = () => invite(b.dataset.inv));
   $$('#friendList [data-del]').forEach(b => b.onclick = () => { const i = friends.findIndex(f => f.code === b.dataset.del); if (i >= 0) friends.splice(i, 1); save(); renderFriends(); });
@@ -161,7 +175,7 @@ async function renderFriends() {
     const row = $(`[data-f="${f.code}"]`); if (!row) return;
     row.querySelector('.st').classList.toggle('on', !!r);
     row.querySelector('.fs').textContent = f.code + ' · ' + (r ? (r.hosting ? 'à une table' : 'en ligne') : 'hors ligne');
-    if (r && r.name && r.name !== f.name) { f.name = r.name; save(); row.querySelector('b').textContent = r.name; }
+    if (r && r.name && (r.name !== f.name || r.avatar !== f.avatar)) { f.name = r.name; f.avatar = r.avatar; save(true); row.querySelector('b').textContent = r.name; row.querySelector('.av').firstChild.textContent = r.avatar || '🙂'; }
   });
 }
 $('#copyCode').onclick = () => { try { navigator.clipboard.writeText(profile.code); toast('Code copié'); } catch (e) {} };
@@ -179,7 +193,7 @@ $('#addFriend').onsubmit = async e => {
 };
 
 // Messages entrants
-net.on('ping', c => { c.send({ name: profile.name, hosting: table.hosting() }); setTimeout(() => c.close(), 1000); });
+net.on('ping', c => { c.send({ name: profile.name, avatar: profile.avatar, hosting: table.hosting() }); setTimeout(() => c.close(), 1000); });
 net.on('friend', c => {
   const f = c.metadata.from || {}; c.close();
   if (!f.code || friends.some(x => x.code === f.code)) return;
@@ -192,37 +206,10 @@ net.on('invite', c => {
 });
 
 // ---------- Profil ----------
-const GOOGLE = '<svg viewBox="0 0 24 24" width="20" height="20"><path fill="#4285F4" d="M23.5 12.3c0-.8-.1-1.6-.2-2.3H12v4.5h6.5a5.6 5.6 0 0 1-2.4 3.6v3h3.9c2.3-2.1 3.5-5.2 3.5-8.8z"/><path fill="#34A853" d="M12 24c3.2 0 6-1.1 8-2.9l-3.9-3a7.2 7.2 0 0 1-10.8-3.8h-4v3.1A12 12 0 0 0 12 24z"/><path fill="#FBBC05" d="M5.3 14.3a7.2 7.2 0 0 1 0-4.6V6.6h-4a12 12 0 0 0 0 10.8l4-3.1z"/><path fill="#EA4335" d="M12 4.8c1.8 0 3.3.6 4.6 1.8l3.4-3.4A12 12 0 0 0 1.3 6.6l4 3.1A7.2 7.2 0 0 1 12 4.8z"/></svg>';
-async function googleLogin() {
-  try { await auth.signIn(); closeSheet(); toast('Connecté avec Google'); }
-  catch (e) { if (!/popup-closed|cancelled/.test(e.code || '')) toast('Connexion Google impossible', { cls: 'bad' }); }
-}
-function accountHTML() {
-  const u = auth.currentUser();
-  return u ? `<div class="panel acct"><div class="who"><b>Connecté avec Google</b><small>${esc(u.email || u.displayName || '')} · progression sauvegardée</small></div><button class="btn sm" id="logout">Se déconnecter</button></div>`
-           : `<div class="panel acct"><div class="who"><b>Mode invité</b><small>Connecte-toi pour garder ta progression sur tous tes appareils</small></div></div>
-              <button class="btn full gbtn" id="login">${GOOGLE}Se connecter avec Google</button>`;
-}
-function bindAccount() {
-  const i = $('#login'), o = $('#logout');
-  if (i) i.onclick = googleLogin;
-  if (o) o.onclick = async () => { await auth.logout(); toast('Déconnecté'); };
-}
-function welcome() {
-  const el = sheet(`<div class="welcome"><img src="icons/icon.svg" alt="" width="84" height="84"><h2>Bienvenue sur Blackoff</h2>
-    <p>Le blackjack simple, en solo ou en ligne avec tes amis.</p></div>
-    <button class="btn full gbtn" id="wLogin">${GOOGLE}Se connecter avec Google</button>
-    <button class="btn full" id="wGuest">Jouer en invité</button>`);
-  const done = () => { profile.welcomed = true; save(true); };
-  el.querySelector('#wLogin').onclick = () => { done(); googleLogin(); };
-  el.querySelector('#wGuest').onclick = () => { done(); closeSheet(); };
-}
-
 function renderProfile() {
   const acc = stats.dec ? Math.round(100 * stats.good / stats.dec) + '%' : '–';
   const wr = stats.hands ? Math.round(100 * stats.won / stats.hands) + '%' : '–';
-  $('#profile').innerHTML = `<div class="phead"><div class="av big">${esc(profile.name[0] || '?')}</div><b>${esc(profile.name)}</b><small>Code ${profile.code}</small></div>
-    ${accountHTML()}
+  $('#profile').innerHTML = `<div class="phead"><div class="av lg">${esc(profile.avatar)}</div><b>${esc(profile.name)}</b><small>${esc((auth.currentUser() || {}).email || '')} · code ${profile.code}</small></div>
     <div class="stats">
       <div class="stat"><b>${fmt(profile.bank)}</b><span>Jetons</span></div>
       <div class="stat"><b>${fmt(stats.best)}</b><span>Meilleur solde</span></div>
@@ -233,7 +220,6 @@ function renderProfile() {
       <div class="stat"><b>${stats.bestStreak}</b><span>Meilleure série</span></div>
       <div class="stat"><b>${fmt(stats.online)}</b><span>Mains en ligne</span></div>
     </div>`;
-  bindAccount();
 }
 
 // ---------- Réglages ----------
@@ -244,14 +230,17 @@ function renderSettings() {
       ${sw('sound', 'Sons', 'Cartes, jetons et gains')}
       ${sw('vibrate', 'Vibrations', 'Retour haptique sur mobile')}
       ${sw('trainer', 'Correction en partie', 'Indique tes erreurs de stratégie dans tous les modes')}
+      ${sw('odds', 'Probabilités', 'Affiche tes chances de gagner pendant la main')}
       ${sw('hints', 'Afficher le bon coup', 'Surligne la meilleure action avant de jouer')}
     </div>
     <div class="panel"><div class="row"><div>Règles<small>6 jeux · le croupier reste sur 17 · blackjack payé 3:2 · double après séparation · jusqu'à 4 mains</small></div></div></div>
-    <button class="btn danger full" id="resetAll">Réinitialiser la progression</button>`;
+    <button class="btn full" id="logout">Se déconnecter</button>
+    <button class="btn danger full" id="resetAll" style="margin-top:8px">Réinitialiser la progression</button>`;
+  $('#logout').onclick = () => auth.logout();
   $$('.switch').forEach(b => b.onclick = () => { settings[b.dataset.k] = !settings[b.dataset.k]; b.classList.toggle('on'); save(); sfx.tap(); });
   $('#nameIn').onchange = e => { const v = e.target.value.trim().slice(0, 16); if (v) { profile.name = v; save(); } };
   $('#resetAll').onclick = () => {
-    const el = sheet(`<h2>Tout réinitialiser ?</h2><p>Jetons, achats, statistiques et amis seront effacés.</p><div class="grid"><button class="btn" id="no">Annuler</button><button class="btn primary" id="yes">Réinitialiser</button></div>`);
+    const el = sheet(`<h2>Tout réinitialiser ?</h2><p>Jetons, achats, statistiques et amis seront effacés.</p><div class="grid"><button class="btn" id="no">Annuler</button><button class="btn white" id="yes">Réinitialiser</button></div>`);
     el.querySelector('#no').onclick = closeSheet; el.querySelector('#yes').onclick = resetAll;
   };
 }
@@ -260,20 +249,34 @@ const RENDER = { 's-home': renderHome, 's-shop': renderShop, 's-friends': render
 
 // ---------- Divers ----------
 $('#leave').onclick = () => {
-  const el = sheet(`<h2>Quitter la table ?</h2><p>Une main en cours sera perdue.</p><div class="grid"><button class="btn" id="no">Rester</button><button class="btn primary" id="yes">Quitter</button></div>`);
+  const el = sheet(`<h2>Quitter la table ?</h2><p>Une main en cours sera perdue.</p><div class="grid"><button class="btn" id="no">Rester</button><button class="btn white" id="yes">Quitter</button></div>`);
   el.querySelector('#no').onclick = closeSheet;
   el.querySelector('#yes').onclick = () => { closeSheet(); table.exit(); };
 };
 $('#sheet').addEventListener('click', e => { if (e.target.id === 'sheet') closeSheet(); });
 
-// ---------- Lancement ----------
-applyLook(); save();
-TABS.forEach(t => t.classList.toggle('on', t.dataset.go === cur));
-renderHome(); requestAnimationFrame(() => placePill(2));
-auth.init();
-auth.onUser(u => { if (u) profile.welcomed = true; if (cur === 's-profile') renderProfile(); });
-if (!profile.welcomed) setTimeout(() => { if (!auth.currentUser() && !profile.welcomed) welcome(); }, 900);
-const status = $('#netStatus');
-net.init(profile.code)
-  .then(() => { status.classList.add('on'); status.innerHTML = `<i></i>En ligne · ton code <b>&nbsp;${profile.code}</b>`; })
-  .catch(() => { status.innerHTML = '<i></i>Hors ligne · le solo reste disponible'; });
+// ---------- Lancement : connexion Google obligatoire ----------
+const gateMsg = $('#gateMsg'), loginBtn = $('#login');
+loginBtn.onclick = async () => {
+  loginBtn.disabled = true; gateMsg.textContent = 'Connexion…';
+  try { await auth.signIn(); }
+  catch (e) { loginBtn.disabled = false; gateMsg.textContent = /popup-closed|cancelled/.test(e.code || '') ? '' : 'Connexion impossible. Réessaie.'; }
+};
+let booted = false;
+function boot() {
+  if (booted) return; booted = true;
+  document.body.classList.remove('locked');
+  applyLook(); save(true);
+  TABS.forEach(t => t.classList.toggle('on', t.dataset.go === cur));
+  renderHome(); requestAnimationFrame(() => placePill(2));
+  const status = $('#netStatus');
+  net.init(profile.code)
+    .then(() => { status.classList.add('on'); status.innerHTML = `<i></i>En ligne · code ${profile.code}`; })
+    .catch(() => { status.innerHTML = '<i></i>Hors ligne · le solo reste disponible'; });
+}
+if (location.hostname === 'localhost' && location.hash === '#dev') boot(); // test local uniquement
+else auth.start({
+  onReady: boot,
+  onLogin: () => { document.body.classList.add('locked'); loginBtn.disabled = false; gateMsg.textContent = 'Ta progression est sauvegardée sur ton compte.'; },
+  onError: () => { gateMsg.innerHTML = 'Impossible de charger la connexion. <a href="" style="color:#fff">Réessayer</a>'; },
+});

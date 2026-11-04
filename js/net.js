@@ -76,12 +76,13 @@ export async function notify(code, meta) {
 }
 
 // Partie rapide : le premier joueur occupe le « hall » et attend ; le suivant le rejoint.
-export function quickMatch({ onWaiting, onFound, onError }) {
+export function quickMatch({ stake = 0, onWaiting, onFound, onError }) {
+  const LOBBY_ID = LOBBY + '-' + stake;
   let lp = null, stopped = false;
   const stop = () => { stopped = true; try { lp && lp.destroy(); } catch (e) {} };
   const tryOnce = (n = 0) => {
     if (stopped) return;
-    lp = new window.Peer(LOBBY, { debug: 0 });
+    lp = new window.Peer(LOBBY_ID, { debug: 0 });
     lp.on('open', () => {
       if (stopped) return stop();
       onWaiting();
@@ -94,7 +95,7 @@ export function quickMatch({ onWaiting, onFound, onError }) {
       if (e.type !== 'unavailable-id') { if (!lp.open) onError && onError(e); return; }
       lp.destroy();
       // Quelqu'un attend déjà : on lui demande son code de salon
-      const c = peer.connect(LOBBY, { reliable: true });
+      const c = peer.connect(LOBBY_ID, { reliable: true });
       const t = setTimeout(() => { try { c.close(); } catch (er) {} if (n < 3) setTimeout(() => tryOnce(n + 1), 800 + Math.random() * 1200); }, 5000);
       c.on('data', d => { if (d.t === 'go' && !stopped) { clearTimeout(t); stopped = true; c.close(); onFound(d.code); } });
     });
