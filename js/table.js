@@ -29,7 +29,7 @@ function begin(c) {
 }
 
 export function startLocal(mode, st = profile.stake) {
-  const t = new Table({ online: false, stake: st, onChange: ev => update(t.snapshot(), ev) });
+  const t = new Table({ online: false, stake: st, fun: mode === 'train', onChange: ev => update(t.snapshot(), ev) });
   begin({ mode, stake: st, label: mode === 'train' ? 'Entraî&shy;nement' : STAKES[st].name, myId: 'me', table: t, send: m => apply(t, 'me', m), leave: () => t.stop() });
   setInfo();
   t.addSeat('me', profile.name, myPub());
@@ -39,7 +39,7 @@ export function startLocal(mode, st = profile.stake) {
 export function startHost(label, extra = {}) {
   const guests = new Map(), me = net.myId(), st = extra.tour ? 5 : (extra.stake ?? profile.stake);
   const t = new Table({
-    online: true, stake: st, tour: extra.tour ? { ...TOUR } : null,
+    online: true, stake: st, tour: extra.tour ? { ...TOUR } : null, fun: !!extra.fun,
     onChange: ev => { const s = t.snapshot(); update(s, ev); guests.forEach(c => { try { c.send({ t: 'state', s, ev }); } catch (e) {} }); },
   });
   net.on('join', c => {
@@ -91,7 +91,7 @@ function apply(t, id, m) {
 export function exit(silent) {
   if (!ctl) return;
   const me = mySeat();
-  if (me && snap && !snap.tour && snap.phase !== 'bet' && !me.out) profile.bank -= wagered(me); // partir en pleine main = mise perdue
+  if (me && snap && !virtual() && snap.phase !== 'bet' && !me.out) profile.bank -= wagered(me); // partir en pleine main = mise perdue
   const c = ctl; ctl = null; snap = null;
   clearInterval(ticker);
   try { c.leave(); } catch (e) {}
@@ -101,7 +101,8 @@ export function exit(silent) {
 // ---------- État ----------
 const mySeat = () => snap && ctl && snap.seats.find(s => s.id === ctl.myId);
 const wagered = s => s.hands.reduce((a, h) => a + h.bet, 0);
-const avail = () => { const me = mySeat(); return snap && snap.tour ? (me ? me.tbank : 0) : profile.bank; };
+const virtual = () => !!(snap && (snap.tour || snap.fun));
+const avail = () => { const me = mySeat(); return virtual() ? (me ? me.tbank : 0) : profile.bank; };
 function displayBank() {
   const me = mySeat(), base = avail();
   if (!me || !snap) return base;
@@ -128,7 +129,7 @@ function settle() {
   { const pot = $('#pot'), col = chipColor(Math.max(1, wagered(me)));
     if (me.net > 0) fly(pot, $('#tBal'), col); else if (me.net < 0) fly(pot, $('#dCards'), col); }
   resultUntil = Date.now() + 1700; setTimeout(() => { if (ctl) render(); }, 1750);
-  if (!snap.tour) {
+  if (!virtual()) {
     profile.bank += me.net;
     const wk = weekKey(); if (stats.week !== wk) { stats.week = wk; stats.weekNet = 0; }
     stats.weekNet += me.net;
@@ -146,7 +147,7 @@ function settle() {
   if (n > 0) { msg(bj ? `<b>Blackjack</b> +${fmt(n)}` : `<b>Gagné</b> +${fmt(n)}`, 'ok'); sfx.win(); vib(30); }
   else if (n < 0) { msg(`<b>Perdu</b> −${fmt(-n)}`, 'bad'); sfx.lose(); }
   else msg('Égalité');
-  if (!snap.tour && profile.bank < STAKES[0].min) { profile.bank = START_BANK; toast(`Plus de jetons : on te recharge ${fmt(START_BANK)}`); }
+  if (!virtual() && profile.bank < STAKES[0].min) { profile.bank = START_BANK; toast(`Plus de jetons : on te recharge ${fmt(START_BANK)}`); }
   if (lastBet > avail()) lastBet = 0;
   save(); checkAch(); onSettle();
 }
@@ -218,6 +219,8 @@ function render() {
   const before = new Map();
   $$('#s-table .card[data-k]').forEach(e => before.set(e.dataset.k, e.getBoundingClientRect()));
   renderInner(s);
+  const shoe = { x: innerWidth * .78, y: 70 };
+  $$('#s-table .card.in').forEach(e => { const r = e.getBoundingClientRect(); e.style.setProperty('--dx', (shoe.x - r.left - r.width / 2) + 'px'); e.style.setProperty('--dy', (shoe.y - r.top - r.height / 2) + 'px'); });
   while (toShake.length) { const e = $(`[data-hk="${toShake.shift()}"] .cards`); if (e) e.animate([{ transform: 'none' }, { transform: 'translateX(-8px)' }, { transform: 'translateX(8px)' }, { transform: 'translateX(-6px)' }, { transform: 'translateX(4px)' }, { transform: 'none' }], { duration: 450, easing: 'ease-in-out' }); }
   if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
   $$('#s-table .card[data-k]').forEach(e => {
@@ -278,18 +281,21 @@ function renderMe() {
 }
 
 // ---------- Jetons au centre de la table ----------
-const CHIP_COLORS = ['#f5f5f7', '#ff453a', '#64d2ff', '#bf5af2'];
+const CHIP_COLORS = ['#f2f2f4', '#ef5a5f', '#5b8cff', '#2a2a2e'];
 const short = v => v >= 1e6 ? (v / 1e6).toLocaleString('fr-FR', { maximumFractionDigits: 1 }) + 'M' : v >= 1000 ? (v / 1000).toLocaleString('fr-FR', { maximumFractionDigits: 1 }) + 'k' : String(v);
 const chipColor = amount => { const c = stake().chips; let k = 0; c.forEach((v, i) => { if (amount >= v) k = i; }); return CHIP_COLORS[k]; };
-let potShown = 0;
+let potShown = 0, potStack = [];
+// Décompose un montant en jetons (du plus gros au plus petit)
+function stackOf(amount) { const c = [...stake().chips].reverse(), out = []; for (const v of c) while (amount >= v && out.length < 12) { out.push(v); amount -= v; } return out.reverse(); }
 function renderPot() {
   const me = mySeat(), el = $('#pot');
   if (!snap || !me) { el.innerHTML = ''; potShown = 0; return; }
   const amount = snap.phase === 'bet' || snap.phase === 'lobby' ? (me.ready ? me.bet : pend) : snap.phase === 'over' || me.out ? 0 : wagered(me);
   if (amount === potShown) return;
   potShown = amount;
-  el.innerHTML = amount ? `<span class="potchip${chipColor(amount) === CHIP_COLORS[0] ? ' light' : ''}" style="--c:${chipColor(amount)}"><b>${short(amount)}</b></span>` : '';
-  if (amount) { el.classList.remove('bump'); void el.offsetWidth; el.classList.add('bump'); }
+  const chips = snap.phase === 'bet' && !me.ready && potStack.length ? potStack : stackOf(amount);
+  el.innerHTML = amount ? `<span class="stack">${chips.map((v, i) => { const k = Math.max(0, stake().chips.indexOf(v)); return `<span class="potchip${k ? '' : ' light'}${i === chips.length - 1 ? ' top' : ''}" style="--c:${CHIP_COLORS[k]};--i:${i}"></span>`; }).join('')}</span><b class="potamt">${fmt(amount)}</b>` : '';
+  const top = el.querySelector('.potchip.top'); if (top && amount) top.animate([{ transform: 'translateY(calc(var(--i) * -5px - 14px))', opacity: .4 }, { transform: 'translateY(calc(var(--i) * -5px))', opacity: 1 }], { duration: 260, easing: 'cubic-bezier(.22,1,.36,1)' });
 }
 // Un jeton qui vole d'un élément à un autre
 function fly(from, to, color) {
@@ -307,7 +313,7 @@ function fly(from, to, color) {
 
 function renderControls() {
   const s = snap, me = mySeat(), lv = stake();
-  const show = id => { ['#betAct', '#playUI', '#waitUI'].forEach(x => $(x).hidden = x !== id); const bet = id === '#betAct'; $('#betUI').hidden = !bet; $('#pHands').hidden = bet; };
+  const show = id => { ['#betAct', '#playUI', '#waitUI'].forEach(x => $(x).hidden = x !== id); const bet = id === '#betAct'; $('#betUI').hidden = !bet; };
   const secs = s && s.deadline ? Math.max(0, Math.ceil((s.deadline - Date.now()) / 1000)) : 0;
   const wait = html => { show('#waitUI'); $('#waitUI').innerHTML = html; };
   renderMe(); renderPot();
@@ -345,7 +351,7 @@ function renderControls() {
   }
   if (me.out) return wait('Tu joues à la prochaine main');
   if (s.phase === 'play' && s.seats[s.turn]) return wait(`Au tour de ${esc(s.seats[s.turn].name)}${secs ? ` · ${secs}s` : ''}`);
-  wait('<span class="dots">Croupier</span>');
+  wait('');
 }
 const fmtShort = v => v >= 1000 ? (v / 1000) + 'k' : String(v);
 
@@ -355,13 +361,13 @@ function addBet(v, from) {
   if (!ctl || !snap || snap.phase !== 'bet') return;
   if (pend + v > avail()) { msg('<b>Solde insuffisant</b>', 'bad'); vib(30); return; }
   if (pend + v > lv.max) { msg(`Mise max <b>${fmt(lv.max)}</b>`, 'bad'); vib(30); return; }
-  fly(from, $('#pot'), CHIP_COLORS[stake().chips.indexOf(v)] || CHIP_COLORS[0]);
-  pend += v; sfx.chip(); vib(6); msg(''); setTimeout(renderControls, 380);
+  fly(from, $('#pot .stack') || $('#pot'), CHIP_COLORS[stake().chips.indexOf(v)] || CHIP_COLORS[0]);
+  pend += v; potStack.push(v); sfx.chip(); vib(6); msg(''); setTimeout(renderControls, 380);
 }
 function placeBet(amount) {
   const lv = stake();
   if (!ctl || !amount || amount > avail() || amount < lv.min || amount > lv.max) return;
-  lastBet = amount; pend = 0; msg('');
+  lastBet = amount; pend = 0; potStack = []; msg('');
   ctl.send({ t: 'bet', amount, bank: avail() });
 }
 function act(a) {
@@ -378,7 +384,7 @@ function act(a) {
   ctl.send({ t: 'act', a });
 }
 
-$('#clearBet').onclick = () => { pend = 0; renderControls(); };
+$('#clearBet').onclick = () => { pend = 0; potStack = []; renderControls(); };
 $('#rebet').onclick = () => placeBet(lastBet);
 $('#deal').onclick = () => placeBet(pend);
 $$('[data-a]').forEach(b => b.onclick = () => act(b.dataset.a));

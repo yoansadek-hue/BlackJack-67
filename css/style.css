@@ -677,3 +677,45 @@ body[data-felt=marbre] #s-table{background:repeating-linear-gradient(115deg,rgba
 .mcard,.spill,.sitem,.cchip,.chip,.btn,.pill{transition:transform .15s cubic-bezier(.3,.7,.4,1),background .2s,border-color .2s,opacity .2s}
 .sitem:active,.spill:active,.cchip:active{transform:scale(.96)}
 @media (prefers-reduced-motion: reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+
+/* ===== v8 : palette, table stable (plus rien ne bouge), pile de jetons ===== */
+:root{--c-white:#f2f2f4;--c-coral:#ef5a5f;--c-blue:#5b8cff;--c-lav:#9d8cff;--c-sand:#d9c7a3;--red:#ef5a5f;--card-red:#d93a43;
+  --bg:#000;--s1:#111113;--s2:#1b1b1e;--s3:#2a2a2e;--muted:#8a8a90;--dim:#55555b}
+.credit{display:block;text-align:center;color:var(--dim);font-size:11px;margin:18px 0 6px;letter-spacing:.02em}
+.gate-act .credit{margin:4px 0 0}
+/* table : hauteurs fixes pour que l'écran ne monte ni ne descende */
+#s-table{display:none;flex-direction:column}
+#s-table.on{display:flex}
+.ttop{flex:none;height:60px;padding:10px 0}
+.players{flex:none}
+.dealer{flex:none;height:calc(min(18vw,82px)*1.38 + 16px);align-items:center}
+#pot{flex:1;min-height:90px;height:auto;display:flex;align-items:center;justify-content:center;gap:14px}
+#msg{flex:none;height:40px}
+.mid{flex:none;height:calc(min(26vw,118px)*1.38 + 20px);min-height:0}
+#oddsLine{flex:none;height:30px}
+#dock{flex:none;height:150px;display:flex;flex-direction:column;justify-content:flex-end;gap:12px}
+.wait{min-height:68px;height:68px}
+@media (min-width:768px){.dealer{height:calc(min(12vw,104px)*1.38 + 16px)}.mid{height:calc(min(16vw,140px)*1.38 + 20px)}#dock{height:164px}}
+@media (min-width:768px) and (max-height:900px){.dealer{height:calc(min(10vw,13vh,96px)*1.38 + 16px)}.mid{height:calc(min(13vw,16vh,124px)*1.38 + 20px)}}
+@media (max-height:700px){.dealer{height:calc(min(15vw,66px)*1.38 + 12px)}.mid{height:calc(min(22vw,92px)*1.38 + 16px)}#dock{height:132px}#pot{min-height:64px}}
+/* jetons pour miser : rangée compacte dans le bas */
+#betUI{width:100%}
+#betUI .chips{display:flex;justify-content:center;gap:12px;margin:0}
+#betUI .chip{width:54px;height:54px}
+#betUI .chip b{font-size:13px}
+@media (min-width:768px){#betUI .chip{width:62px;height:62px}}
+/* pile au centre */
+.stack{position:relative;width:52px;height:52px;display:block}
+.stack .potchip{position:absolute;left:0;bottom:0;transform:translateY(calc(var(--i) * -5px))}
+.potchip{width:52px;height:52px;border-radius:50%;background:var(--c);
+  box-shadow:inset 0 0 0 4px rgba(0,0,0,.25),inset 0 0 0 7px var(--c),inset 0 0 0 9px rgba(255,255,255,.5),0 3px 0 rgba(0,0,0,.45)}
+.potamt{font-size:22px;font-weight:700;letter-spacing:-.02em}
+.flychip{width:44px;height:44px;border-radius:50%;background:var(--c);box-shadow:inset 0 0 0 4px rgba(0,0,0,.25),inset 0 0 0 7px var(--c),inset 0 0 0 9px rgba(255,255,255,.5)}
+/* distribution depuis le sabot, quelle que soit la place de la carte */
+.card.in{animation:dealIn .5s cubic-bezier(.22,1,.36,1) backwards}
+@keyframes dealIn{0%{transform:translate3d(var(--dx,30vw),var(--dy,-30vh),0) rotate(-14deg) scale(.8);opacity:0}15%{opacity:1}100%{transform:none;opacity:1}}
+/* couleurs harmonisées */
+.mcard{background:radial-gradient(120% 90% at 100% 0%,color-mix(in srgb,var(--tint) 26%,transparent),transparent 62%),var(--s1)}
+.mic{color:var(--tint)}
+.tag.l{background:var(--c-coral)}
+.rk.r1{background:var(--c-white)}
