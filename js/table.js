@@ -125,10 +125,16 @@ function settle() {
 const msg = (html, cls = '') => { $('#msg').innerHTML = html ? `<div class="toast ${cls}">${html}</div>` : ''; };
 
 // ---------- Rendu ----------
-function cardEl(c) {
-  if (!c || c.back) return '<div class="card back"></div>';
+// Seules les cartes nouvellement distribuées s'animent (les autres restent immobiles)
+let seen = new Set(), seenRound = -1;
+function cardEl(c, key) {
+  const k = key + (!c || c.back ? 'b' : c.r + c.s), fresh = !seen.has(k);
+  const flip = fresh && c && !c.back && seen.has(key + 'b');
+  seen.add(k);
+  const anim = flip ? ' flip' : fresh ? ' in' : '';
+  if (!c || c.back) return `<div class="card back${anim}"></div>`;
   const red = c.s === '♥' || c.s === '♦';
-  return `<div class="card${red ? ' red' : ''}"><div class="r">${c.r}</div><div class="s">${c.s}</div><div class="big">${c.s}</div></div>`;
+  return `<div class="card${red ? ' red' : ''}${anim}"><div class="r">${c.r}</div><div class="s">${c.s}</div><div class="big">${c.s}</div></div>`;
 }
 function scoreHTML(cards, h) {
   const { t, soft } = total(cards);
@@ -142,9 +148,10 @@ const resHTML = h => h.res ? `<span class="result ${h.res}">${h.res === 'win' ? 
 function render() {
   const s = snap; if (!s || !ctl) return;
   const me = mySeat();
+  if (s.round !== seenRound) { seenRound = s.round; seen = new Set(); }
   $('#tBank').textContent = fmt(displayBank());
 
-  $('#dCards').innerHTML = s.dealer.map(cardEl).join('');
+  $('#dCards').innerHTML = s.dealer.map((c, i) => cardEl(c, 'd' + i)).join('');
   const ds = $('#dScore');
   if (!s.dealer.length) { ds.textContent = '–'; ds.className = 'score'; }
   else { const t = total(s.dealer).t, bj = !s.hole && s.dealer.length === 2 && t === 21; ds.textContent = bj ? 'BJ' : t; ds.className = 'score' + (t > 21 ? ' bust' : bj ? ' bj' : ''); }
@@ -154,7 +161,7 @@ function render() {
     const h = x.hands[x.cur] || x.hands[0];
     const status = x.out ? 'attend' : s.phase === 'bet' ? (x.ready ? `● ${fmt(x.bet)}` : 'mise…') : '';
     return `<div class="seat${turnId === x.id ? ' turn' : ''}"><div class="nm">${esc(x.name)}</div>
-      ${x.hands.length ? x.hands.map(hh => `<div class="cards">${hh.cards.map(cardEl).join('')}</div>`).join('') : '<div class="cards"></div>'}
+      ${x.hands.length ? x.hands.map((hh, j) => `<div class="cards">${hh.cards.map((c, i) => cardEl(c, x.id + j + ':' + i)).join('')}</div>`).join('') : '<div class="cards"></div>'}
       <div class="meta">${h ? scoreHTML(h.cards, h) : ''}${x.hands.map(resHTML).join('')}${status}</div></div>`;
   }).join('');
 
@@ -163,7 +170,7 @@ function render() {
   else {
     ph.classList.toggle('multi', me.hands.length > 1);
     ph.innerHTML = me.hands.map((h, i) => `<div class="hand${turnId === me.id && i === me.cur && me.hands.length > 1 ? ' active' : ''}">
-      <div class="cards">${h.cards.map(cardEl).join('')}</div>
+      <div class="cards">${h.cards.map((c, j) => cardEl(c, 'me' + i + ':' + j)).join('')}</div>
       <div class="label">${scoreHTML(h.cards, h)}<span class="betchip">● ${fmt(h.bet)}</span>${resHTML(h)}</div></div>`).join('')
       || `<div class="hand"><div class="cards"></div><div class="label">${esc(profile.name)}</div></div>`;
   }

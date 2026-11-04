@@ -126,7 +126,7 @@ input{font:inherit;color:var(--text)}
 .cards{display:flex;--cw:min(19vw,84px);min-height:calc(var(--cw)*1.4)}
 .hands.multi .cards{--cw:min(13vw,60px)}
 .card{width:var(--cw);height:calc(var(--cw)*1.4);border-radius:calc(var(--cw)*.12);background:var(--card);color:var(--card-black);
-  margin-left:calc(var(--cw)*-.55);position:relative;box-shadow:0 6px 18px rgba(0,0,0,.5);animation:deal .3s cubic-bezier(.2,.9,.3,1.2) both;
+  margin-left:calc(var(--cw)*-.55);position:relative;box-shadow:0 6px 18px rgba(0,0,0,.5);backface-visibility:hidden;
   display:flex;flex-direction:column;padding:calc(var(--cw)*.08);flex:none}
 .card:first-child{margin-left:0}
 .card.red{color:var(--card-red)}
@@ -137,7 +137,10 @@ input{font:inherit;color:var(--text)}
 .card.back{border:3px solid var(--card)}
 .card.back::after{content:"";position:absolute;inset:5px;border-radius:5px;border:1.5px solid rgba(255,255,255,.25);
   background:repeating-linear-gradient(45deg,rgba(255,255,255,.07) 0 4px,transparent 4px 8px)}
-@keyframes deal{from{transform:translateY(-40px) rotate(-6deg) scale(.9);opacity:0}}
+.card.in{animation:deal .45s cubic-bezier(.16,1,.3,1) backwards;will-change:transform}
+.card.flip{animation:flip .4s cubic-bezier(.2,.8,.3,1) backwards}
+@keyframes deal{0%{transform:translate3d(38vw,-38vh,0) rotate(24deg) scale(.7);opacity:0}25%{opacity:1}100%{transform:none}}
+@keyframes flip{0%{transform:perspective(600px) rotateY(90deg) scale(1.05)}100%{transform:none}}
 .betchip{font-size:12px;font-weight:700;color:var(--gold)}
 .result{font-size:12px;font-weight:800;padding:3px 9px;border-radius:999px}
 .result.win{background:var(--accent);color:var(--accent-ink)}.result.lose{background:var(--red);color:#fff}.result.push{background:var(--surface2)}
@@ -203,3 +206,45 @@ input{font:inherit;color:var(--text)}
 #toasts .toast{pointer-events:auto;display:flex;align-items:center;gap:10px;box-shadow:0 10px 30px rgba(0,0,0,.5);max-width:100%}
 #toasts .toast .btn{min-height:32px}
 @media (min-height:820px){.cards{--cw:min(19vw,92px)}}
+
+/* ===== Tablette (iPad) et ordinateur ===== */
+@media (min-width:768px){
+  #app{max-width:none}
+  .screen{padding-left:max(32px,calc((100% - 760px)/2));padding-right:max(32px,calc((100% - 760px)/2))}
+  .logo{font-size:34px}.top h1{font-size:34px}
+  .mode.hero{min-height:200px;padding:28px}.mode.hero b{font-size:36px}.mode.hero em{width:60px;height:60px}
+  .modes{grid-template-columns:repeat(3,1fr)}.mode.wide{grid-column:auto}
+  .mode{padding:20px;min-height:140px;justify-content:flex-end}
+  .shopgrid{grid-template-columns:repeat(6,1fr)}
+  .stats{grid-template-columns:repeat(4,1fr)}
+  .tabbar{width:400px}
+  .sheet{border-radius:26px;margin-bottom:24px;max-width:480px}
+  .sheet-bg{align-items:center}
+  #toasts{top:20px}
+  #s-table{padding:env(safe-area-inset-top) 32px 24px}
+  #s-table .top,#controls{width:100%;max-width:620px;margin-inline:auto}
+  .cards{--cw:min(13vw,108px)}
+  .hands.multi .cards{--cw:min(9vw,78px)}
+  .seat{min-width:130px;padding:10px 14px}.seat .nm{font-size:14px;max-width:140px}
+  .seat .cards{--cw:40px;min-height:56px}
+  .chip{max-width:72px;font-size:16px}
+  .btn{min-height:56px;font-size:16px}
+}
+/* Écran large et paysage : les commandes passent sur le côté */
+@media (min-width:1024px) and (orientation:landscape){
+  #s-table.on{display:grid;grid-template-columns:minmax(0,1fr) 380px;grid-template-rows:auto minmax(0,1fr);column-gap:32px;max-width:1400px;margin-inline:auto}
+  #s-table .top{grid-column:1/-1;max-width:none}
+  #felt{grid-column:1;grid-row:2;justify-content:space-around;
+    background:radial-gradient(70% 60% at 50% 50%,color-mix(in srgb,var(--felt) 85%,transparent),transparent 75%);border-radius:40px}
+  #controls{grid-column:2;grid-row:2;align-self:center;max-width:none;padding:20px}
+  #playUI.grid.four{grid-template-columns:1fr 1fr}
+  #playUI .btn{min-height:72px;font-size:18px}
+  .cards{--cw:min(9vw,118px,14vh)}
+  .hands.multi .cards{--cw:min(6vw,84px,10vh)}
+}
+@media (hover:hover){
+  .mode:hover,.sitem:hover{border-color:color-mix(in srgb,var(--accent) 45%,var(--line))}
+  .btn:not(:disabled):hover{filter:brightness(1.12)}
+  .chip:hover{transform:translateY(-3px)}
+}
+@media (min-width:768px) and (orientation:portrait){.cards{--cw:min(17vw,140px,11vh)}.hands.multi .cards{--cw:min(11vw,96px)}}
