@@ -40,8 +40,8 @@ const ACCS = {
   solaires: '<g fill="#151515"><rect x="34" y="41" width="14" height="9" rx="4"/><rect x="52" y="41" width="14" height="9" rx="4"/><rect x="47" y="43" width="6" height="2"/></g>',
   casquette: '<g fill="#f5f5f7"><path d="M28 37c0-17 44-17 44 0z"/><path d="M50 35h32q-2 5-12 4z"/></g><path d="M28 37c0-17 44-17 44 0" fill="none" stroke="#151515" stroke-width="1.5"/>',
   casque: '<g><path d="M26 47C26 15 74 15 74 47" fill="none" stroke="#151515" stroke-width="5"/><rect x="22" y="41" width="9" height="15" rx="4" fill="#151515"/><rect x="69" y="41" width="9" height="15" rx="4" fill="#151515"/></g>',
-  boucle: '<circle cx="30.5" cy="54" r="2.6" fill="#ffd60a"/>',
-  couronne: '<path d="M33 25l5-12 7 8 5-11 5 11 7-8 5 12z" fill="#ffd60a" stroke="#a07800" stroke-width="1.2"/>',
+  boucle: '<circle cx="30.5" cy="54" r="2.6" fill="#e5e5ea"/>',
+  couronne: '<path d="M33 25l5-12 7 8 5-11 5 11 7-8 5 12z" fill="#e5e5ea" stroke="#8e8e93" stroke-width="1.2"/>',
 };
 const SHIRT = { ardoise: '#151518', craie: '#b8b8bd', rubis: '#a12a22', azur: '#0a4fa8', ciel: '#2a7fa0', violet: '#6d2f8f', ambre: '#a8650a', or: '#9a7d00', nuit: '#2a2a40' };
 
@@ -59,31 +59,34 @@ export function avatarSVG(look) {
     ${l.hair === 'long' ? HAIR.court(hc) : hair}${EYES[l.eyes] || EYES.points}${MOUTHS[l.mouth] || MOUTHS.sourire}${ACCS[l.acc] || ''}</svg>`;
 }
 
-// ---------- Catalogue ----------
-// [catégorie, id, nom, prix, succès requis "id:palier"]
+// ---------- Catalogue (3 onglets : Avatar, Dos de cartes, Fond) ----------
+// [id, nom, prix, succès requis "id:palier"]
 const L = (cat, list) => list.map(([id, name, price, req]) => ({ cat, id, name, price, req }));
-export const SHOP = [
-  { cat: 'hair', title: 'Coiffures', items: L('hair', [['court', 'Court', 0], ['ras', 'Ras', 0], ['chauve', 'Chauve', 0], ['meche', 'Mèche', 300], ['long', 'Long', 500], ['boucles', 'Boucles', 700], ['chignon', 'Chignon', 900], ['crete', 'Crête', 1500]]) },
-  { cat: 'hc', title: 'Couleur des cheveux', items: L('hc', [['noir', 'Noir', 0], ['brun', 'Brun', 0], ['chatain', 'Châtain', 0], ['blond', 'Blond', 200], ['roux', 'Roux', 300], ['blanc', 'Blanc', 600], ['bleu', 'Bleu', 1200], ['rose', 'Rose', 1200], ['or', 'Or', 0, 'bj:2']]) },
-  { cat: 'eyes', title: 'Yeux', items: L('eyes', [['points', 'Points', 0], ['joyeux', 'Joyeux', 0], ['calme', 'Calme', 250], ['grands', 'Grands', 400], ['clin', "Clin d'œil", 800]]) },
-  { cat: 'mouth', title: 'Bouche', items: L('mouth', [['sourire', 'Sourire', 0], ['neutre', 'Neutre', 0], ['malin', 'Malin', 250], ['rire', 'Rire', 400], ['surpris', 'Surpris', 600]]) },
-  { cat: 'acc', title: 'Accessoires', items: L('acc', [['aucun', 'Aucun', 0], ['boucle', "Boucle d'oreille", 500], ['lunettes', 'Lunettes', 800], ['casquette', 'Casquette', 1500], ['solaires', 'Solaires', 2500], ['casque', 'Casque audio', 4000], ['couronne', 'Couronne', 0, 'rich:3']]) },
-  { cat: 'bg', title: 'Fond', items: L('bg', [['ardoise', 'Ardoise', 0], ['craie', 'Craie', 0], ['nuit', 'Nuit', 300], ['ciel', 'Ciel', 500], ['azur', 'Azur', 700], ['violet', 'Violet', 900], ['ambre', 'Ambre', 1100], ['rubis', 'Rubis', 1500], ['or', 'Or', 0, 'win:3']]) },
-  { cat: 'frame', title: "Cadre d'avatar", items: L('frame', [['none', 'Aucun', 0], ['blanc', 'Blanc', 400], ['double', 'Double', 900], ['azur', 'Azur', 1500], ['rubis', 'Rubis', 1500], ['neon', 'Néon', 3000], ['or', 'Or', 6000], ['diamant', 'Diamant', 0, 'hands:3']]) },
-  { cat: 'banner', title: 'Bannière du profil', items: L('banner', [['plain', 'Uni', 0], ['rayures', 'Rayures', 400], ['points', 'Points', 600], ['damier', 'Damier', 900], ['nuit', 'Nuit', 1500], ['aurore', 'Aurore', 3000], ['flammes', 'Flammes', 0, 'streak:2'], ['or', 'Or', 8000]]) },
-  { cat: 'title', title: 'Titre', items: L('title', [['', 'Aucun', 0], ['Recrue', 'Recrue', 200], ['Joueur du soir', 'Joueur du soir', 500], ['Calculateur', 'Calculateur', 1000], ['Requin', 'Requin', 2500], ['Croupier fou', 'Croupier fou', 4000], ['Stratège', 'Stratège', 0, 'strat:2'], ['Intouchable', 'Intouchable', 0, 'streak:3'], ['Champion', 'Champion', 0, 'tour:1'], ['Légende', 'Légende', 0, 'rich:4']]) },
-  { cat: 'nc', title: 'Couleur du pseudo', items: L('nc', [['blanc', 'Blanc', 0], ['gris', 'Argent', 300], ['azur', 'Azur', 800], ['violet', 'Violet', 800], ['rubis', 'Rubis', 1200], ['or', 'Or', 5000], ['arc', 'Arc-en-ciel', 0, 'online:3']]) },
-  { cat: 'back', title: 'Dos de cartes', items: L('back', [['stripes', 'Rayures', 0], ['dots', 'Points', 600], ['grid', 'Grille', 1200], ['waves', 'Ondes', 2500], ['noir', 'Noir', 5000], ['rouge', 'Rouge', 10000], ['or', 'Or', 40000]]) },
+export const SKIN_ITEMS = SKINS.map((c, i) => ({ cat: 'skin', id: i, name: 'Teint ' + (i + 1), price: 0 }));
+export const AVATAR_GROUPS = [
+  { cat: 'skin', title: 'Teint', items: SKIN_ITEMS },
+  { cat: 'hair', title: 'Coiffure', items: L('hair', [['court', 'Court', 0], ['ras', 'Ras', 0], ['chauve', 'Chauve', 0], ['meche', 'Mèche', 400], ['long', 'Long', 700], ['boucles', 'Boucles', 1000], ['chignon', 'Chignon', 1500], ['crete', 'Crête', 2500]]) },
+  { cat: 'hc', title: 'Cheveux', items: L('hc', [['noir', 'Noir', 0], ['brun', 'Brun', 0], ['chatain', 'Châtain', 0], ['blond', 'Blond', 300], ['roux', 'Roux', 500], ['blanc', 'Blanc', 900], ['bleu', 'Bleu', 0, 'bj:2'], ['rose', 'Rose', 0, 'win:2']]) },
+  { cat: 'eyes', title: 'Yeux', items: L('eyes', [['points', 'Points', 0], ['joyeux', 'Joyeux', 0], ['calme', 'Calme', 300], ['grands', 'Grands', 600], ['clin', "Clin d'œil", 1200]]) },
+  { cat: 'mouth', title: 'Bouche', items: L('mouth', [['sourire', 'Sourire', 0], ['neutre', 'Neutre', 0], ['malin', 'Malin', 300], ['rire', 'Rire', 600], ['surpris', 'Surpris', 900]]) },
+  { cat: 'acc', title: 'Accessoire', items: L('acc', [['aucun', 'Aucun', 0], ['lunettes', 'Lunettes', 800], ['casquette', 'Casquette', 1500], ['solaires', 'Solaires', 2500], ['casque', 'Casque audio', 4000], ['couronne', 'Couronne', 0, 'rich:3']]) },
+  { cat: 'bg', title: 'Couleur', items: L('bg', [['ardoise', 'Ardoise', 0], ['craie', 'Craie', 0], ['nuit', 'Nuit', 400], ['ciel', 'Ciel', 700], ['violet', 'Violet', 1000], ['rubis', 'Rubis', 1500]]) },
+  { cat: 'frame', title: 'Cadre', items: L('frame', [['none', 'Aucun', 0], ['blanc', 'Blanc', 600], ['double', 'Double', 1500], ['neon', 'Néon', 4000], ['diamant', 'Diamant', 0, 'hands:3']]) },
+];
+export const SHOP_TABS = [
+  { id: 'avatar', title: 'Avatar', groups: AVATAR_GROUPS },
+  { id: 'back', title: 'Dos de cartes', groups: [{ cat: 'back', title: 'Dos de cartes', items: L('back', [['stripes', 'Rayures', 0], ['dots', 'Points', 800], ['grid', 'Grille', 1500], ['waves', 'Ondes', 3000], ['noir', 'Noir', 6000], ['rouge', 'Rouge', 12000]]) }] },
+  { id: 'felt', title: 'Fond', groups: [{ cat: 'felt', title: 'Fond de table', items: L('felt', [['noir', 'Noir', 0], ['graphite', 'Graphite', 500], ['nuit', 'Nuit', 1500], ['bordeaux', 'Bordeaux', 3000], ['velours', 'Velours', 6000], ['marbre', 'Marbre', 0, 'streak:3']]) }] },
 ];
 export const AVATAR_CATS = ['hair', 'hc', 'eyes', 'mouth', 'acc', 'bg'];
-export const SKIN_ITEMS = SKINS.map((c, i) => ({ cat: 'skin', id: i, name: 'Teint ' + (i + 1), price: 0 }));
-export const findItem = (cat, id) => { for (const g of SHOP) if (g.cat === cat) return g.items.find(i => String(i.id) === String(id)); return null; };
+export const ALL_GROUPS = SHOP_TABS.flatMap(t => t.groups);
+export const findItem = (cat, id) => { for (const g of ALL_GROUPS) if (g.cat === cat) return g.items.find(i => String(i.id) === String(id)); return null; };
 
 // ---------- Possession ----------
 export const ownKey = (cat, id) => cat + ':' + id;
 export const owns = it => it.req ? reached(...reqOf(it)) : it.price === 0 || (profile.owned || []).includes(ownKey(it.cat, it.id));
 export const reqOf = it => { const [id, t] = it.req.split(':'); return [id, +t]; };
-export const equipped = it => it.cat === 'back' ? profile.back === it.id : AVATAR_CATS.includes(it.cat) ? String(profile.look[it.cat]) === String(it.id) : String(profile.cos[it.cat]) === String(it.id);
+export const equipped = it => it.cat === 'back' ? profile.back === it.id : (AVATAR_CATS.includes(it.cat) || it.cat === 'skin') ? String(profile.look[it.cat]) === String(it.id) : String(profile.cos[it.cat] ?? (it.cat === 'felt' ? 'noir' : 'none')) === String(it.id);
 export function equip(it) {
   if (it.cat === 'back') profile.back = it.id;
   else if (AVATAR_CATS.includes(it.cat) || it.cat === 'skin') profile.look[it.cat] = it.id;

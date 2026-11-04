@@ -140,7 +140,7 @@ function settle() {
   }
   if (ctl.mode === 'host' || ctl.mode === 'guest') stats.online++;
   const n = me.net, bj = me.hands.some(h => h.bj);
-  if (n > 0) { msg(bj ? `<b>Blackjack</b> +${fmt(n)}` : `<b>Gagné</b> +${fmt(n)}`, bj ? 'gold' : 'ok'); sfx.win(); vib(30); }
+  if (n > 0) { msg(bj ? `<b>Blackjack</b> +${fmt(n)}` : `<b>Gagné</b> +${fmt(n)}`, 'ok'); sfx.win(); vib(30); }
   else if (n < 0) { msg(`<b>Perdu</b> −${fmt(-n)}`, 'bad'); sfx.lose(); }
   else msg('Égalité');
   if (!snap.tour && profile.bank < STAKES[0].min) { profile.bank = START_BANK; toast(`Plus de jetons : on te recharge ${fmt(START_BANK)}`); }
@@ -347,18 +347,19 @@ function showStats(seat) {
   if (!snap || !seat) return;
   const pub = seat.avatar || {}, mine = seat.id === ctl.myId;
   const h = seat.hands[seat.cur] || seat.hands[0];
-  const live = snap.phase === 'play' || snap.phase === 'deal';
   let cells = '';
-  if (h && h.cards.length && snap.dealer.length && !h.res && live) {
+  if (mine && h && h.cards.length >= 2 && snap.dealer.length && !h.res) {
     const o = isBJ(h) ? { win: 1, push: 0 } : odds(h.cards, snap.dealer[0]);
     const up = snap.dealer[0].r === 'A' ? 11 : ['J', 'Q', 'K', '10'].includes(snap.dealer[0].r) ? 10 : +snap.dealer[0].r;
     cells = statCell('Victoire', Math.round((o ? o.win : 0) * 100) + '%', 'hi') + statCell('Sauter si tu tires', bustIfHit(h.cards) + '%')
       + statCell('Croupier saute', (DEALER_BUST[up] || 0) + '%') + statCell('Main', handLabel(h));
+  } else if (mine) {
+    cells = statCell('Victoire', (stats.hands ? Math.round(100 * stats.won / stats.hands) : 0) + '%', 'hi') + statCell('Blackjacks', fmt(stats.bj)) + statCell('Mains jouées', fmt(stats.hands)) + statCell('Niveau', pub.lvl || 1);
   } else {
     cells = statCell('Niveau', pub.lvl || 1, 'hi') + statCell('Mains gagnées', (pub.wr || 0) + '%') + statCell('Mains jouées', fmt(pub.hands || 0)) + statCell('Blackjacks', fmt(pub.bj || 0));
   }
   sheet(`<div class="statsheet">${avHTML(pub, seat.name, 'lg')}${nameHTML(seat.name, pub)}${pub.title ? `<small class="ptitle">${esc(pub.title)}</small>` : ''}
-    <small class="muted">${mine ? 'Toi' : 'Niveau ' + (pub.lvl || 1)} · ${snap.tour ? fmt(seat.tbank) + ' jetons de tournoi' : mine ? fmt(profile.bank) + ' jetons' : ''}</small>
+    <small class="muted">${mine && h && h.cards.length >= 2 && !h.res ? 'Ta main en cours' : mine ? 'Toi' : 'Niveau ' + (pub.lvl || 1)} · ${snap.tour ? fmt(seat.tbank) + ' jetons de tournoi' : mine ? fmt(profile.bank) + ' jetons' : ''}</small>
     <div class="sc-grid">${cells}</div></div>`);
 }
 $('#dock .mebox').addEventListener('click', () => showStats(mySeat()));
