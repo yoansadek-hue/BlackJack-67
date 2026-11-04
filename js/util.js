@@ -49,3 +49,14 @@ export function sheet(html) {
   return $('#sheetBody');
 }
 export function closeSheet() { $('#sheet').hidden = true; }
+
+// Avatars sans emoji : initiale du pseudo sur un motif
+export const AVATARS = [
+  ['a0', 'Ardoise', 0], ['a1', 'Craie', 300], ['a2', 'Anneau', 600], ['a3', 'Rayures', 1000],
+  ['a4', 'Points', 1500], ['a5', 'Moitié', 2500], ['a6', 'Rubis', 4000], ['a7', 'Azur', 6000],
+  ['a8', 'Améthyste', 9000], ['a9', 'Or', 15000], ['a10', 'Grille', 25000], ['a11', 'Halo', 50000],
+];
+export const avStyle = id => AVATARS.some(a => a[0] === id) ? id : 'a0';
+const initial = name => esc(((name || '?').trim()[0] || '?').toUpperCase());
+export const avHTML = (id, name, cls = '') => `<span class="av ${cls}" data-s="${avStyle(id)}">${initial(name)}</span>`;
+export function paintAv(el, id, name) { el.dataset.s = avStyle(id); el.innerHTML = initial(name); }

@@ -34,6 +34,10 @@ export async function signIn() {
   const f = await load();
   return f.signInWithPopup(f.auth, new f.GoogleAuthProvider());
 }
+export async function signInRedirect() {
+  const f = await load();
+  return f.signInWithRedirect(f.auth, new f.GoogleAuthProvider());
+}
 export async function logout() { if (fb) await fb.signOut(fb.auth); location.reload(); }
 
 const ref = () => fb.doc(fb.db, COLLECTION, user.uid);

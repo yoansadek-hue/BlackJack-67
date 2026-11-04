@@ -28,7 +28,8 @@ body:not(.locked) #gate{opacity:0;pointer-events:none}
 .wordmark{font-weight:800;font-size:38px;letter-spacing:-.06em}
 .wordmark.sm{font-size:26px}
 .gbtn{display:flex;align-items:center;justify-content:center;gap:10px}
-.gbtn .g{width:18px;height:18px;background:conic-gradient(from -45deg,#ea4335 0 25%,#fbbc05 0 50%,#34a853 0 75%,#4285f4 0);border-radius:50%;
+.gbtn .glogo{flex:none}
+.gbtn .g-old{width:18px;height:18px;background:conic-gradient(from -45deg,#ea4335 0 25%,#fbbc05 0 50%,#34a853 0 75%,#4285f4 0);border-radius:50%;
   -webkit-mask:radial-gradient(circle at center,transparent 4px,#000 4.5px);mask:radial-gradient(circle at center,transparent 4px,#000 4.5px)}
 body.locked #app,body.locked .tabbar{visibility:hidden}
 
@@ -43,8 +44,20 @@ body.locked #app,body.locked .tabbar{visibility:hidden}
 .bank{display:inline-flex;align-items:center;gap:7px;font-weight:700;font-size:15px}
 .coin{width:14px;height:14px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff3b0,var(--gold) 55%,#b38f00);box-shadow:0 0 0 2px rgba(255,214,10,.18)}
 .me{display:flex;align-items:center;gap:10px;padding:5px 14px 5px 5px;border-radius:999px;background:var(--s1)}
-.av{width:36px;height:36px;border-radius:50%;background:var(--s2);display:grid;place-items:center;font-size:20px;line-height:1;flex:none;position:relative}
-.av.lg{width:84px;height:84px;font-size:46px}
+.av{width:36px;height:36px;border-radius:50%;background:var(--s2);color:#fff;display:grid;place-items:center;font-size:15px;font-weight:800;line-height:1;flex:none;position:relative;letter-spacing:-.02em;overflow:hidden}
+.av.lg{width:88px;height:88px;font-size:38px}
+.av[data-s=a1]{background:#f5f5f7;color:#000}
+.av[data-s=a2]{background:#000;box-shadow:inset 0 0 0 2.5px #fff}
+.av[data-s=a3]{background:repeating-linear-gradient(135deg,#3a3a3e 0 4px,#1c1c1f 4px 8px)}
+.av[data-s=a4]{background:radial-gradient(#4a4a4f 1.4px,transparent 1.8px) 0 0/7px 7px,#1c1c1f}
+.av[data-s=a5]{background:linear-gradient(135deg,#f5f5f7 50%,#000 50%);color:#8e8e93}
+.av[data-s=a6]{background:var(--red)}
+.av[data-s=a7]{background:#0a84ff}
+.av[data-s=a8]{background:var(--violet)}
+.av[data-s=a9]{background:linear-gradient(135deg,#fff3b0,var(--gold) 45%,#a07800);color:#000}
+.av[data-s=a10]{background:linear-gradient(#4a4a4f 1.5px,transparent 1.5px) 0 0/8px 8px,linear-gradient(90deg,#4a4a4f 1.5px,transparent 1.5px) 0 0/8px 8px,#111}
+.av[data-s=a11]{background:#000;box-shadow:inset 0 0 0 2px #fff,0 0 14px rgba(255,255,255,.55)}
+.avw{position:relative;flex:none}
 
 /* Niveaux de table */
 .stakes{display:flex;gap:10px;overflow-x:auto;scroll-snap-type:x mandatory;margin:0 -18px;padding:0 18px 4px}
@@ -57,13 +70,14 @@ body.locked #app,body.locked .tabbar{visibility:hidden}
 .stake .amt{font-size:22px;font-weight:800;letter-spacing:-.03em}
 .stake .dotc{position:absolute;top:14px;right:14px;width:10px;height:10px;border-radius:50%}
 .stake.lock{opacity:.4}
-.stake.lock .amt::after{content:" 🔒";font-size:14px}
+
 
 /* Modes */
 .modes{display:flex;flex-direction:column;gap:2px;border-radius:var(--r);overflow:hidden}
 .mode{display:flex;align-items:center;gap:14px;padding:16px;background:var(--s1);text-align:left;transition:background .15s}
 .mode:active{background:var(--s2)}
-.mode .ic{width:40px;height:40px;border-radius:12px;background:var(--s2);display:grid;place-items:center;font-size:18px}
+.mode .ic{width:40px;height:40px;border-radius:12px;background:var(--s2);display:grid;place-items:center;color:#fff}
+.mode .ic svg{width:20px;height:20px}
 .mode div{flex:1;display:flex;flex-direction:column;gap:2px}
 .mode b{font-size:16px;font-weight:600}
 .mode small{font-size:13px;color:var(--muted)}
@@ -117,7 +131,7 @@ body.locked #app,body.locked .tabbar{visibility:hidden}
 .sitem .price .coin{width:10px;height:10px}
 .sitem .price.own{color:var(--muted)}
 .sitem .pvback{width:46px;height:64px;border-radius:9px}
-.sitem .av{width:48px;height:48px;font-size:28px}
+.sitem .av{width:48px;height:48px;font-size:20px}
 
 /* ---------- Cartes ---------- */
 .cards{display:flex;--cw:min(17vw,78px)}
@@ -149,7 +163,8 @@ body[data-back=or] .card.back,.pvback.or{background-color:#2b2510;background-ima
 .backbtn svg{width:20px;height:20px;stroke:#fff;fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
 .players{flex:1;display:flex;justify-content:center;gap:14px;min-width:0}
 .pl{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11px;color:var(--muted);min-width:52px;transition:opacity .3s}
-.pl .av{width:44px;height:44px;font-size:26px;transition:box-shadow .3s}
+.pl{position:relative}
+.pl .av{width:44px;height:44px;font-size:18px;transition:box-shadow .3s}
 .pl.turn .av{box-shadow:0 0 0 2px #fff}
 .pl.out{opacity:.45}
 .pl b{color:var(--text);font-size:13px}
@@ -202,7 +217,8 @@ body[data-back=or] .card.back,.pvback.or{background-color:#2b2510;background-ima
 .chip:nth-child(1) i{background:#f5f5f7}.chip:nth-child(2) i{background:var(--red)}.chip:nth-child(3) i{background:var(--blue)}.chip:nth-child(4) i{background:var(--violet)}
 .chip:disabled{opacity:.25}
 .mebox{grid-column:2;grid-row:1;width:112px;border-radius:24px;background:var(--s1);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:12px 8px}
-.mebox .av{width:48px;height:48px;font-size:28px}
+.mebox{position:relative}
+.mebox .av{width:48px;height:48px;font-size:20px}
 .mebox small{font-size:11px;color:var(--muted);font-weight:600}
 .mebox b{font-size:17px;font-weight:700;letter-spacing:-.02em}
 .wait{min-height:108px;display:flex;align-items:center;justify-content:center;color:var(--muted);font-weight:600;font-size:14px;text-align:center;border-radius:24px;background:var(--s1);padding:10px}
@@ -271,3 +287,37 @@ body[data-back=or] .card.back,.pvback.or{background-color:#2b2510;background-ima
   .mode:hover,.stake:hover{background:var(--s2)}
   .pill:not(:disabled):hover,.chip:hover{filter:brightness(1.25)}
 }
+
+/* Réactions rapides */
+.react-btn{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;flex:none;background:var(--s1);color:#fff}
+.react-btn svg{width:18px;height:18px}
+#reactBar{display:flex;gap:6px;justify-content:center;flex-wrap:wrap;padding:4px 0 8px;animation:pop .2s}
+#reactBar button{height:36px;padding:0 14px;border-radius:999px;background:var(--s2);font-size:13px;font-weight:600}
+#reactBar button:active{background:#fff;color:#000}
+.bubble{position:absolute;left:50%;top:-8px;transform:translate(-50%,-100%);background:#fff;color:#000;font-size:12px;font-weight:700;
+  padding:5px 10px;border-radius:12px;white-space:nowrap;z-index:5;animation:bub .3s cubic-bezier(.2,.9,.3,1.4)}
+.bubble::after{content:"";position:absolute;left:50%;bottom:-4px;width:8px;height:8px;background:#fff;transform:translateX(-50%) rotate(45deg)}
+.pl .bubble{top:auto;bottom:-10px;transform:translate(-50%,100%)}
+.pl .bubble::after{bottom:auto;top:-4px}
+@keyframes bub{from{opacity:0;scale:.6}}
+/* Succès */
+.achs{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
+.ach{background:var(--s1);border-radius:18px;padding:14px;display:flex;flex-direction:column;gap:6px;position:relative;overflow:hidden}
+.ach b{font-size:14px;font-weight:700}.ach small{font-size:12px;color:var(--muted);line-height:1.35}
+.ach .prog{height:4px;border-radius:2px;background:var(--s3);overflow:hidden;margin-top:auto}
+.ach .prog i{display:block;height:100%;background:#fff}
+.ach .rw{font-size:11px;font-weight:700;display:flex;align-items:center;gap:5px;color:var(--muted)}
+.ach .rw .coin{width:9px;height:9px}
+.ach.done{background:var(--s2)}
+.ach.done::before{content:"";position:absolute;top:12px;right:12px;width:20px;height:20px;border-radius:50%;background:#fff;
+  -webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 0a12 12 0 1 0 0 24 12 12 0 0 0 0-24zm-1.6 17.2-5-5 1.8-1.8 3.2 3.2 6.8-6.8 1.8 1.8z'/%3E%3C/svg%3E") center/contain no-repeat;
+  mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 0a12 12 0 1 0 0 24 12 12 0 0 0 0-24zm-1.6 17.2-5-5 1.8-1.8 3.2 3.2 6.8-6.8 1.8 1.8z'/%3E%3C/svg%3E") center/contain no-repeat}
+.ach.done .prog{display:none}
+/* Classement de tournoi */
+.rank{display:flex;flex-direction:column;gap:2px;border-radius:18px;overflow:hidden;margin-bottom:14px}
+.rank div{display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--s2);font-weight:600}
+.rank div:first-child{background:#fff;color:#000}
+.rank .pos{width:22px;font-weight:800}
+.rank .nm{flex:1}
+.wait .btn{margin-left:4px}
+@media (min-width:768px){.achs{grid-template-columns:repeat(3,1fr)}}

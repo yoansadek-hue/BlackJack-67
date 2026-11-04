@@ -1,8 +1,12 @@
 // Écran de jeu : affiche la table et relie les boutons au moteur (local, hôte ou invité)
-import { $, $$, fmt, esc, sfx, vib, toast } from './util.js';
-import { Table, total, isBJ, best, canDouble, canSplit, odds, STAKES } from './engine.js';
+import { $, $$, fmt, esc, sfx, vib, toast, avHTML, paintAv, sheet, closeSheet } from './util.js';
+import { Table, total, isBJ, best, canDouble, canSplit, odds, STAKES, TOUR } from './engine.js';
 import { profile, stats, settings, save, START_BANK } from './store.js';
 import * as net from './net.js';
+import { checkAch } from './achievements.js';
+
+export const REACTS = ['GG', 'Bien joué', 'Aïe', 'Allez', 'Chanceux', 'Encore !', 'Merci', 'Wow'];
+const reacts = new Map();
 
 const NAMES = { H: 'Tirer', S: 'Rester', D: 'Doubler', P: 'Séparer' };
 let ctl = null, snap = null, pend = 0, lastBet = 0, applied = 0, sent = false, ticker = null, onExit = () => {};
@@ -15,7 +19,8 @@ const stake = () => STAKES[(snap && snap.stake) || (ctl && ctl.stake) || 0] || S
 
 // ---------- Démarrage ----------
 function begin(c) {
-  ctl = c; snap = null; pend = 0; applied = 0; sent = false; lastBet = 0; oddsKey = '';
+  ctl = c; snap = null; pend = 0; applied = 0; sent = false; lastBet = 0; oddsKey = ''; reacts.clear();
+  $('#reactBar').hidden = true; $('#reactBtn').hidden = !(c.host || c.mode === 'guest');
   $('#msg').innerHTML = ''; $('#odds').innerHTML = '';
   clearInterval(ticker); ticker = setInterval(() => snap && snap.deadline && renderControls(), 500);
 }
@@ -29,13 +34,13 @@ export function startLocal(mode, st = profile.stake) {
 
 // Héberger une table : les invités se connectent avec notre code
 export function startHost(label, extra = {}) {
-  const guests = new Map(), me = net.myId(), st = extra.stake ?? profile.stake;
+  const guests = new Map(), me = net.myId(), st = extra.tour ? 5 : (extra.stake ?? profile.stake);
   const t = new Table({
-    online: true, stake: st,
+    online: true, stake: st, tour: extra.tour ? { ...TOUR } : null,
     onChange: ev => { const s = t.snapshot(); update(s, ev); guests.forEach(c => { try { c.send({ t: 'state', s, ev }); } catch (e) {} }); },
   });
   net.on('join', c => {
-    if (!ctl || ctl.table !== t || !t.addSeat(c.peer, String(c.metadata.name || 'Joueur').slice(0, 16), String(c.metadata.avatar || '🙂').slice(0, 4))) {
+    if (!ctl || ctl.table !== t || !t.addSeat(c.peer, String(c.metadata.name || 'Joueur').slice(0, 16), String(c.metadata.avatar || 'a0').slice(0, 4))) {
       c.send({ t: ctl && ctl.table === t ? 'full' : 'nohost' }); return setTimeout(() => c.close(), 600);
     }
     guests.set(c.peer, c);
@@ -45,6 +50,7 @@ export function startHost(label, extra = {}) {
     c.on('data', m => apply(t, c.peer, m));
     c.on('close', () => { guests.delete(c.peer); if (ctl && ctl.table === t) { t.removeSeat(c.peer); toast(`${esc(c.metadata.name)} a quitté la table`); } });
   });
+  t.onReact = (id, i) => { guests.forEach(c => { try { c.send({ t: 'react', id, i }); } catch (e) {} }); showReact(id, i); };
   begin({
     mode: 'host', host: true, stake: st, label, myId: me, table: t, guests,
     send: m => apply(t, me, m),
@@ -63,6 +69,7 @@ export async function startGuest(code, label = 'En ligne') {
   setInfo();
   c.on('data', d => {
     if (d.t === 'state') update(d.s, d.ev);
+    else if (d.t === 'react') showReact(d.id, d.i);
     else if (d.t === 'full') { toast('La table est complète', { cls: 'bad' }); exit(true); }
     else if (d.t === 'nohost') { toast("Ce joueur n'a pas de table ouverte", { cls: 'bad' }); exit(true); }
   });
@@ -74,12 +81,14 @@ function apply(t, id, m) {
   if (!m) return;
   if (m.t === 'bet') t.bet(id, +m.amount, +m.bank);
   else if (m.t === 'act') t.act(id, m.a);
+  else if (m.t === 'react' && t.onReact && REACTS[m.i]) t.onReact(id, m.i);
+  else if (m.t === 'start' && t.online && ctl && ctl.host && id === ctl.myId) t.startTour();
 }
 
 export function exit(silent) {
   if (!ctl) return;
   const me = mySeat();
-  if (me && snap && snap.phase !== 'bet' && !me.out) profile.bank -= wagered(me); // partir en pleine main = mise perdue
+  if (me && snap && !snap.tour && snap.phase !== 'bet' && !me.out) profile.bank -= wagered(me); // partir en pleine main = mise perdue
   const c = ctl; ctl = null; snap = null;
   clearInterval(ticker);
   try { c.leave(); } catch (e) {}
@@ -89,27 +98,31 @@ export function exit(silent) {
 // ---------- État ----------
 const mySeat = () => snap && ctl && snap.seats.find(s => s.id === ctl.myId);
 const wagered = s => s.hands.reduce((a, h) => a + h.bet, 0);
+const avail = () => { const me = mySeat(); return snap && snap.tour ? (me ? me.tbank : 0) : profile.bank; };
 function displayBank() {
-  const me = mySeat();
-  if (!me || !snap) return profile.bank;
-  if (snap.phase === 'bet') return profile.bank - (me.ready ? me.bet : pend);
-  return me.out ? profile.bank : profile.bank - wagered(me);
+  const me = mySeat(), base = avail();
+  if (!me || !snap) return base;
+  if (snap.phase === 'bet' || snap.phase === 'lobby') return base - (me.ready ? me.bet : pend);
+  if (snap.phase === 'over') return base;
+  return me.out ? base : base - wagered(me);
 }
-function setInfo() { $('#tMode').innerHTML = ctl.label; $$('[data-av]').forEach(e => e.textContent = profile.avatar); }
+function setInfo() { $('#tMode').innerHTML = snap && snap.tour ? `Main<br>${Math.min(snap.tour.hands, snap.round + (snap.phase === 'bet' ? 1 : 0))}/${snap.tour.hands}` : ctl.label; $$('[data-av]').forEach(e => paintAv(e, profile.avatar, profile.name)); }
 
 function update(s, ev) {
   if (!ctl) return;
   snap = s; sent = false;
   if (ev === 'card' || ev === 'flip') sfx.card();
   settle();
+  if (s.tour) setInfo();
   render();
+  if (s.phase === 'over' && !ctl.overShown) { ctl.overShown = true; setTimeout(showRanking, 900); }
 }
 
 function settle() {
   const me = mySeat();
-  if (!me || snap.phase !== 'bet' || me.net == null || snap.round <= applied) return;
+  if (!me || (snap.phase !== 'bet' && snap.phase !== 'over') || me.net == null || snap.round <= applied) return;
   applied = snap.round;
-  profile.bank += me.net;
+  if (!snap.tour) profile.bank += me.net;
   for (const h of me.hands) {
     stats.hands++;
     if (h.res === 'win') { stats.won++; stats.streak++; if (h.bj) stats.bj++; }
@@ -122,10 +135,41 @@ function settle() {
   if (n > 0) { msg(bj ? `<b>Blackjack</b> +${fmt(n)}` : `<b>Gagné</b> +${fmt(n)}`, bj ? 'gold' : 'ok'); sfx.win(); vib(30); }
   else if (n < 0) { msg(`<b>Perdu</b> −${fmt(-n)}`, 'bad'); sfx.lose(); }
   else msg('Égalité');
-  if (profile.bank < STAKES[0].min) { profile.bank = START_BANK; toast(`Plus de jetons : on te recharge ${fmt(START_BANK)}`); }
-  if (lastBet > profile.bank) lastBet = 0;
-  save();
+  if (!snap.tour && profile.bank < STAKES[0].min) { profile.bank = START_BANK; toast(`Plus de jetons : on te recharge ${fmt(START_BANK)}`); }
+  if (lastBet > avail()) lastBet = 0;
+  save(); checkAch();
 }
+
+function showRanking() {
+  if (!ctl || !snap) return;
+  const list = [...snap.seats].sort((a, b) => b.tbank - a.tbank), me = mySeat();
+  const won = me && list.length > 1 && me.tbank === list[0].tbank;
+  stats.tours++;
+  if (won) { stats.tourWins++; profile.bank += snap.tour.prize; sfx.win(); }
+  save(); checkAch();
+  const el = sheet(`<h2>${won ? 'Tu gagnes le tournoi' : 'Tournoi terminé'}</h2><p>${won ? `+${fmt(snap.tour.prize)} jetons ajoutés à ton solde.` : 'Bien joué. Retente ta chance !'}</p>
+    <div class="rank">${list.map((x, i) => `<div><span class="pos">${i + 1}</span>${avHTML(x.avatar, x.name)}<span class="nm">${esc(x.name)}</span><b>${fmt(x.tbank)}</b></div>`).join('')}</div>
+    <button class="btn white full" id="tourOk">Quitter la table</button>`);
+  el.querySelector('#tourOk').onclick = () => { closeSheet(); exit(true); };
+}
+
+// ---------- Réactions rapides ----------
+function showReact(id, i) {
+  if (!REACTS[i]) return;
+  reacts.set(id, { text: REACTS[i], until: Date.now() + 2600 });
+  sfx.tap(); render();
+  setTimeout(render, 2700);
+}
+const bubble = id => { const r = reacts.get(id); return r && r.until > Date.now() ? `<span class="bubble">${esc(r.text)}</span>` : ''; };
+let lastReact = 0;
+$('#reactBtn').onclick = () => {
+  const bar = $('#reactBar');
+  bar.hidden = !bar.hidden;
+  if (!bar.hidden) {
+    bar.innerHTML = REACTS.map((r, i) => `<button data-r="${i}">${r}</button>`).join('');
+    $$('[data-r]').forEach(b => b.onclick = () => { if (Date.now() - lastReact < 1500 || !ctl) return; lastReact = Date.now(); ctl.send({ t: 'react', i: +b.dataset.r }); bar.hidden = true; });
+  }
+};
 
 const msg = (html, cls = '') => { $('#msg').innerHTML = html ? `<div class="toast ${cls}">${html}</div>` : ''; };
 
@@ -138,7 +182,7 @@ function cardEl(c, key) {
   const anim = flip ? ' flip' : fresh ? ' in' : '';
   if (!c || c.back) return `<div class="card back${anim}"></div>`;
   const red = c.s === '♥' || c.s === '♦';
-  return `<div class="card${red ? ' red' : ''}${anim}"><div class="r">${c.r}</div><div class="s">${c.s}</div></div>`;
+  return `<div class="card${red ? ' red' : ''}${anim}"><div class="r">${c.r}</div><div class="s">${c.s}\uFE0E</div></div>`;
 }
 function handLabel(h) {
   const { t, soft } = total(h.cards);
@@ -162,8 +206,8 @@ function render() {
   const turnId = s.phase === 'play' && s.seats[s.turn] ? s.seats[s.turn].id : null;
   $('#others').innerHTML = s.seats.filter(x => x.id !== ctl.myId).map(x => {
     const h = x.hands[x.cur] || x.hands[0];
-    const info = x.out ? 'attend' : s.phase === 'bet' ? (x.ready ? fmt(x.bet) : 'mise…') : h ? handLabel(h) : '';
-    return `<div class="pl${turnId === x.id ? ' turn' : ''}${x.out ? ' out' : ''}"><span class="av">${esc(x.avatar || '🙂')}</span><span>${esc(x.name)}</span><b>${info}</b><span class="mini">${x.hands.map(tag).join('')}</span></div>`;
+    const info = s.phase === 'lobby' || s.phase === 'over' ? (s.tour ? fmt(x.tbank) : '') : x.out ? 'attend' : s.phase === 'bet' ? (x.ready ? fmt(x.bet) : s.tour ? fmt(x.tbank) : 'mise…') : h ? handLabel(h) : '';
+    return `<div class="pl${turnId === x.id ? ' turn' : ''}${x.out ? ' out' : ''}">${bubble(x.id)}${avHTML(x.avatar, x.name)}<span>${esc(x.name)}</span><b>${info}</b><span class="mini">${x.hands.map(tag).join('')}</span></div>`;
   }).join('') || (ctl.waiting ? '<div class="pl"><span class="av dots"></span><span>Recherche…</span></div>' : '');
 
   const ph = $('#pHands');
@@ -174,6 +218,8 @@ function render() {
       <div class="cards">${h.cards.map((c, j) => cardEl(c, 'me' + i + ':' + j)).join('')}</div>
       <div class="info"><span class="tot">${handLabel(h)}</span><span class="bet"><i class="coin"></i>${fmt(h.bet)}</span>${tag(h)}</div></div>`).join('');
   }
+  const mb = $('#meBubble'), r = bubble(ctl.myId);
+  mb.hidden = !r; if (r) mb.textContent = reacts.get(ctl.myId).text;
   renderOdds(me, turnId);
   renderControls();
 }
@@ -200,19 +246,27 @@ function renderControls() {
   const wait = html => { show('#waitUI'); $('#waitUI').innerHTML = html; };
   $('#tBank').textContent = fmt(displayBank());
   if (!s || !me) { $('#meHand').textContent = ''; return wait('<span class="dots">Connexion</span>'); }
-  const alone = s.seats.length === 1;
+  const alone = s.seats.length === 1, bank = avail();
+  if (s.phase === 'lobby') {
+    $('#meHand').textContent = 'Tournoi';
+    if (!ctl.host) return wait("En attente du lancement par l'hôte");
+    wait(`${s.seats.length} joueur${s.seats.length > 1 ? 's' : ''} · code <b>&nbsp;${esc(profile.code)}&nbsp;</b><button class="btn sm white" id="startTour">Lancer</button>`);
+    $('#startTour').onclick = () => ctl.send({ t: 'start' });
+    return;
+  }
+  if (s.phase === 'over') { $('#meHand').textContent = 'Final'; return wait('Tournoi terminé'); }
 
   if (s.phase === 'bet') {
     $('#meHand').textContent = me.ready ? `Mise ${fmt(me.bet)}` : pend ? `Mise ${fmt(pend)}` : 'Solde';
     if (me.ready) return wait(`Mise placée · en attente des joueurs${secs ? ` · ${secs}s` : ''}`);
-    if (profile.bank < lv.min) return wait(`Il te faut au moins ${fmt(lv.min)} jetons pour cette table`);
+    if (bank < lv.min) return wait(s.tour ? 'Éliminé · plus assez de jetons' : `Il te faut au moins ${fmt(lv.min)} jetons pour cette table`);
     show('#betUI');
-    $('#chips').innerHTML = lv.chips.map(v => `<button class="chip" data-v="${v}" ${v > profile.bank ? 'disabled' : ''}><i></i>${fmtShort(v)}</button>`).join('');
+    $('#chips').innerHTML = lv.chips.map(v => `<button class="chip" data-v="${v}" ${v > bank ? 'disabled' : ''}><i></i>${fmtShort(v)}</button>`).join('');
     $$('#chips .chip').forEach(c => c.onclick = () => addBet(+c.dataset.v));
     const ok = pend >= lv.min;
     $('#deal').disabled = !ok;
     $('#deal').textContent = !pend ? `Min ${fmtShort(lv.min)}` : alone ? 'Distribuer' : (secs ? `Miser · ${secs}s` : 'Miser');
-    $('#rebet').disabled = !lastBet || lastBet > profile.bank;
+    $('#rebet').disabled = !lastBet || lastBet > bank;
     $('#clearBet').disabled = !pend;
     return;
   }
@@ -235,15 +289,15 @@ const fmtShort = v => v >= 1000 ? (v / 1000) + 'k' : String(v);
 function addBet(v) {
   const lv = stake();
   if (!ctl || !snap || snap.phase !== 'bet') return;
-  if (pend + v > profile.bank) { msg('<b>Solde insuffisant</b>', 'bad'); vib(30); return; }
+  if (pend + v > avail()) { msg('<b>Solde insuffisant</b>', 'bad'); vib(30); return; }
   if (pend + v > lv.max) { msg(`Mise max <b>${fmt(lv.max)}</b>`, 'bad'); vib(30); return; }
   pend += v; sfx.chip(); vib(6); msg(''); renderControls();
 }
 function placeBet(amount) {
   const lv = stake();
-  if (!ctl || !amount || amount > profile.bank || amount < lv.min || amount > lv.max) return;
+  if (!ctl || !amount || amount > avail() || amount < lv.min || amount > lv.max) return;
   lastBet = amount; pend = 0; msg('');
-  ctl.send({ t: 'bet', amount, bank: profile.bank });
+  ctl.send({ t: 'bet', amount, bank: avail() });
 }
 function act(a) {
   const me = mySeat(); if (!ctl || !me || sent || snap.phase !== 'play' || !snap.seats[snap.turn] || snap.seats[snap.turn].id !== me.id) return;
@@ -252,8 +306,8 @@ function act(a) {
   if (ctl.mode === 'train' || settings.trainer) {
     const rec = best(h, snap.dealer[0], can.D, can.P);
     stats.dec++;
-    if (a === rec) { stats.good++; msg(`<b>✓</b> ${NAMES[a]} · bon coup`, 'ok'); }
-    else { msg(`<b>✗ ${NAMES[a]}</b> · il fallait ${NAMES[rec]}`, 'bad'); vib(40); }
+    if (a === rec) { stats.good++; msg(`<b>Bon coup</b> · ${NAMES[a]}`, 'ok'); }
+    else { msg(`<b>Erreur</b> · il fallait ${NAMES[rec]}`, 'bad'); vib(40); }
   }
   sent = true; sfx.tap(); renderControls();
   ctl.send({ t: 'act', a });
